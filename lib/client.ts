@@ -1,6 +1,6 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
  * Firebase Client Configuration
@@ -15,8 +15,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Check if we have valid config (skip during build if env vars are missing)
+const hasValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Initialize Firebase only if we have valid config
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
+
+if (hasValidConfig) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else {
+  console.warn('Firebase client configuration missing. Skipping initialization.');
+}
+
+export { auth, db };

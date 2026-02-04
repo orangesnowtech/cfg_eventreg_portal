@@ -5,54 +5,32 @@ runConfig:
   # Runtime environment
   runtime: nodejs20
   
-  # Environment variables (public - available to client-side code)
-  env:
-    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-      availability:
-        - BUILD
-        - RUNTIME
-      value: AIzaSyC3762Bk_ORisX7lORyBJ_-HHDvM-qI_24
-    - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      availability:
-        - BUILD
-        - RUNTIME
-      value: cfg-event-regportal.firebaseapp.com
-    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      availability:
-        - BUILD
-        - RUNTIME
-      value: cfg-event-regportal
-    - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      availability:
-        - BUILD
-        - RUNTIME
-      value: cfg-event-regportal.firebasestorage.app
-    - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-      availability:
-        - BUILD
-        - RUNTIME
-      value: "886647028603"
-    - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-      availability:
-        - BUILD
-        - RUNTIME
-      value: 1:886647028603:web:ecf0c207bbf3e0b27c1bde
-    - variable: NEXT_PUBLIC_APP_URL
-      availability:
-        - BUILD
-        - RUNTIME
-      value: https://cfg-event-regportal.web.app
-  
-  # Secret environment variables (server-side only - stored in Google Secret Manager)
-  # Create these secrets in Google Secret Manager first:
-  # gcloud secrets create FIREBASE_PROJECT_ID --data-file=-
-  # gcloud secrets create FIREBASE_CLIENT_EMAIL --data-file=-
-  # gcloud secrets create FIREBASE_PRIVATE_KEY --data-file=-
-  # gcloud secrets create ZEPTOMAIL_API_KEY --data-file=-
-  # gcloud secrets create ZEPTOMAIL_FROM_EMAIL --data-file=-
-  # gcloud secrets create ZEPTOMAIL_FROM_NAME --data-file=-
-  
+  # Secret environment variables (stored in Google Secret Manager)
   secrets:
+    # Public Firebase client config (NEXT_PUBLIC_* variables)
+    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+      secret: NEXT_PUBLIC_FIREBASE_API_KEY
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+      secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+      secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+      secret: NEXT_PUBLIC_FIREBASE_APP_ID
+      projectId: cfg-event-regportal
+    - variable: NEXT_PUBLIC_APP_URL
+      secret: NEXT_PUBLIC_APP_URL
+      projectId: cfg-event-regportal
+    
+    # Server-side Firebase Admin SDK credentials
     - variable: FIREBASE_PROJECT_ID
       secret: FIREBASE_PROJECT_ID
       projectId: cfg-event-regportal
@@ -62,6 +40,8 @@ runConfig:
     - variable: FIREBASE_PRIVATE_KEY
       secret: FIREBASE_PRIVATE_KEY
       projectId: cfg-event-regportal
+    
+    # Zeptomail credentials
     - variable: ZEPTOMAIL_API_KEY
       secret: ZEPTOMAIL_API_KEY
       projectId: cfg-event-regportal
