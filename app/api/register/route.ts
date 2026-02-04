@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/admin';
 import { registrationSchema } from '@/lib/validations/registration';
 import { generateAccessCode } from '@/types/guest';
-import type { Guest, RegistrationFormData } from '@/types/guest';
+import type { Guest, GuestFormData } from '@/types/guest';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData: RegistrationFormData = validationResult.data;
+    const formData: GuestFormData = validationResult.data;
 
     // Check if email already registered
     const existingGuest = await adminDb
