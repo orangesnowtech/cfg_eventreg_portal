@@ -7,12 +7,26 @@ import { getAuth } from 'firebase-admin/auth';
  * Used for server-side operations (API routes)
  */
 function initAdmin() {
+  // Skip initialization during build time
+  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_PROJECT_ID) {
+    return;
+  }
+
   if (getApps().length === 0) {
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!projectId || !clientEmail || !privateKey) {
+      console.warn('Firebase Admin credentials not found. Skipping initialization.');
+      return;
+    }
+
     initializeApp({
       credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        projectId,
+        clientEmail,
+        privateKey,
       }),
     });
   }
