@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, adminAuth } from '@/lib/admin';
 import type { Guest } from '@/types/guest';
 
+interface GuestWithId extends Guest {
+  id: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return updated guest data
-    const updatedGuest: Guest = {
+    const updatedGuest: GuestWithId = {
       id: guestDoc.id,
       ...guestData,
       checkedIn: true,
