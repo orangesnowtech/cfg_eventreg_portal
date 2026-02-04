@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Guests collection rules
+    match /guests/{guestId} {
+      
+      // Public users can only CREATE new guest documents
+      // They cannot read, update, or delete
+      allow create: if true
+                    && request.resource.data.keys().hasAll([
+                      'firstName', 'lastName', 'email', 'phone',
+                      'organizationName', 'jobTitle', 'guestType',
+                      'howDidYouHear', 'accessCode', 'checkedIn',
+                      'registeredAt', 'checkedInAt'
+                    ])
+                    && request.resource.data.firstName is string
+                    && request.resource.data.lastName is string
+                    && request.resource.data.email is string
+                    && request.resource.data.email.matches('.*@.*\\..*')
+                    && request.resource.data.phone is string
+                    && request.resource.data.organizationName is string
+                    && request.resource.data.jobTitle is string
+                    && request.resource.data.guestType in [
+                      'Active Client', 'Prospective Client', 'Visitor',
+                      'Friend of the House', 'Media/Press', 'Organizer'
+                    ]
+                    && request.resource.data.howDidYouHear is string
+                    && request.resource.data.accessCode is string
+                    && request.resource.data.accessCode.size() == 6
+                    && request.resource.data.checkedIn == false
+                    && request.resource.data.registeredAt is string
+                    && request.resource.data.checkedInAt == null;
+      
+      // Authenticated admins have full access (read, write, update, delete)
+      allow read, update, delete: if isAuthenticated();
+    }
+    
+    // Deny all other access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

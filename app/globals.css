@@ -1,15 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* CFG Africa Brand Colors */
+  --color-primary: #092358;
+  --color-secondary: #27D2A9;
+  --color-light-blue: #58C8E7;
+  --color-coral: #FF5271;
+  --color-background-mint: #E0FAF4;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Montserrat', sans-serif;
+  --font-serif: Georgia, serif;
+  
+  /* CFG Brand Colors */
+  --color-cfg-primary: #092358;
+  --color-cfg-secondary: #27D2A9;
+  --color-cfg-light-blue: #58C8E7;
+  --color-cfg-coral: #FF5271;
+  --color-cfg-mint: #E0FAF4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +37,17 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* CFG Brand Signature Line */
+.cfg-signature-line {
+  height: 3px;
+  background: linear-gradient(90deg, #27D2A9 0%, #58C8E7 100%);
+  width: 100%;
+}
+
+/* CFG Logo Clear Space */
+.cfg-logo-container {
+  padding: 1.5em;
 }
