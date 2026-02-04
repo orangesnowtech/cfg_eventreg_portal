@@ -48,24 +48,18 @@ runConfig:
     # Server-side Firebase Admin SDK credentials
     - variable: FIREBASE_PROJECT_ID
       secret: FIREBASE_PROJECT_ID
-      projectId: cfg-event-regportal
     - variable: FIREBASE_CLIENT_EMAIL
       secret: FIREBASE_CLIENT_EMAIL
-      projectId: cfg-event-regportal
     - variable: FIREBASE_PRIVATE_KEY
       secret: FIREBASE_PRIVATE_KEY
-      projectId: cfg-event-regportal
     
     # Zeptomail credentials
     - variable: ZEPTOMAIL_API_KEY
       secret: ZEPTOMAIL_API_KEY
-      projectId: cfg-event-regportal
     - variable: ZEPTOMAIL_FROM_EMAIL
       secret: ZEPTOMAIL_FROM_EMAIL
-      projectId: cfg-event-regportal
     - variable: ZEPTOMAIL_FROM_NAME
       secret: ZEPTOMAIL_FROM_NAME
-      projectId: cfg-event-regportal
 
 # Cloud Build configuration
 buildConfig:
