@@ -45,12 +45,19 @@ export const registrationSchema = z.object({
     'Media/Press',
     'Organizer'
   ], {
-    errorMap: () => ({ message: 'Please select a valid guest type' })
+    message: 'Please select a valid guest type'
   }),
   
-  howDidYouHear: z.string()
-    .min(3, 'Please tell us how you heard about this event')
-    .max(200, 'Response must be less than 200 characters')
+  howDidYouHear: z.enum([
+    'Social Media',
+    'Email',
+    'Friend/Colleague',
+    'Website',
+    'Event Partner',
+    'Other'
+  ], {
+    message: 'Please select how you heard about this event'
+  })
 });
 
 export type RegistrationFormValues = z.infer<typeof registrationSchema>;

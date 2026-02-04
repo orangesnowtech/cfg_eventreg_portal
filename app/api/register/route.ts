@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const validationResult = registrationSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid form data', details: validationResult.error.errors },
+        { error: 'Invalid form data', details: validationResult.error.issues },
         { status: 400 }
       );
     }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       type: "registration",
       performedBy: "System",
       targetGuest: `${formData.firstName} ${formData.lastName} (${formData.email.toLowerCase()})`,
-      details: `New registration: ${formData.firstName} ${formData.lastName} - ${formData.organization} - Access Code: ${accessCode}`,
+      details: `New registration: ${formData.firstName} ${formData.lastName} - ${formData.organizationName} - Access Code: ${accessCode}`,
       timestamp: now.toISOString(),
     });
 

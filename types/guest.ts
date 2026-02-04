@@ -21,8 +21,8 @@ export interface Guest {
   lastName: string;
   email: string;
   phone: string;
-  linkedinUrl?: string;
-  organization: string;
+  socialMediaUrl?: string;
+  organizationName: string;
   jobTitle: string;
   guestType: GuestType;
   howDidYouHear: HowDidYouHear;
@@ -37,8 +37,8 @@ export interface GuestFormData {
   lastName: string;
   email: string;
   phone: string;
-  linkedinUrl: string;
-  organization: string;
+  socialMediaUrl?: string;
+  organizationName: string;
   jobTitle: string;
   guestType: GuestType;
   howDidYouHear: HowDidYouHear;

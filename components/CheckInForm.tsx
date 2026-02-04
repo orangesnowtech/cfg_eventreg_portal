@@ -214,7 +214,7 @@ export default function CheckInForm() {
                         <p className="font-semibold text-gray-900">{formatGuestName(guestItem)}</p>
                         <p className="text-sm text-gray-600">{guestItem.email}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {guestItem.organization} • Code: {guestItem.accessCode}
+                          {guestItem.organizationName} • Code: {guestItem.accessCode}
                         </p>
                       </div>
                     </div>
@@ -299,7 +299,7 @@ export default function CheckInForm() {
                     <Briefcase className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
                       <p className="font-medium text-gray-900">{selectedGuest.jobTitle}</p>
-                      <p className="text-gray-600">{selectedGuest.organization}</p>
+                      <p className="text-gray-600">{selectedGuest.organizationName}</p>
                     </div>
                   </div>
                 </div>

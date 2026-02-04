@@ -68,7 +68,7 @@ export default function AdminDashboard() {
           guest.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           guest.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           guest.accessCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          guest.organization?.toLowerCase().includes(searchTerm.toLowerCase())
+          guest.organizationName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
       guest.lastName || "",
       guest.email || "",
       guest.phone || "",
-      guest.organization || "",
+      guest.organizationName || "",
       guest.jobTitle || "",
       guest.guestType || "",
       guest.accessCode || "",
@@ -369,7 +369,7 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {guest.organization}
+                      {guest.organizationName}
                     </div>
                     <div className="text-sm text-gray-500">
                       {guest.jobTitle}
