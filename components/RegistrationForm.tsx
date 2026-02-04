@@ -232,7 +232,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="John"
+                    placeholder="Adebayo"
                   />
                   {errors.firstName && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -253,7 +253,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="Doe"
+                    placeholder="Okafor"
                   />
                   {errors.lastName && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -274,7 +274,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="john.doe@example.com"
+                    placeholder="adebayo.okafor@example.com"
                   />
                   {errors.email && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -295,7 +295,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="+1234567890"
+                    placeholder="+2348012345678"
                   />
                   {errors.phone && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -316,7 +316,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="https://linkedin.com/in/johndoe"
+                    placeholder="https://linkedin.com/in/adebayookafor"
                   />
                   {errors.socialMediaUrl && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -349,7 +349,7 @@ export default function RegistrationForm() {
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="Acme Corporation"
+                    placeholder="Nigerian Enterprises Ltd"
                   />
                   {errors.organizationName && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -410,6 +410,9 @@ export default function RegistrationForm() {
                     <option value="Friend of the House">Friend of the House</option>
                     <option value="Media/Press">Media/Press</option>
                     <option value="Organizer">Organizer</option>
+                    <option value="Partner">Partner</option>
+                    <option value="Staff">Staff</option>
+                    <option value="Vendor">Vendor</option>
                   </select>
                   {errors.guestType && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
@@ -422,16 +425,23 @@ export default function RegistrationForm() {
                   <label htmlFor="howDidYouHear" className="block text-sm font-medium mb-2" style={{ color: '#092358' }}>
                     How did you hear about this event? <span style={{ color: '#FF5271' }}>*</span>
                   </label>
-                  <textarea
+                  <select
                     {...register('howDidYouHear')}
                     id="howDidYouHear"
-                    rows={3}
-                    className="w-full px-4 py-2 border rounded-lg outline-none transition resize-none"
+                    className="w-full px-4 py-2 border rounded-lg outline-none transition bg-white"
                     style={{ borderColor: '#d1d5db' }}
                     onFocus={(e) => e.currentTarget.style.borderColor = '#27D2A9'}
                     onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
-                    placeholder="e.g., LinkedIn, Email invitation, Word of mouth..."
-                  />
+                  >
+                    <option value="">Select an option</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Email">Email</option>
+                    <option value="Friend/Colleague">Friend/Colleague</option>
+                    <option value="Website">Website</option>
+                    <option value="Event Partner">Event Partner</option>
+                    <option value="Word of Mouth">Word of Mouth</option>
+                    <option value="Other">Other</option>
+                  </select>
                   {errors.howDidYouHear && (
                     <p className="mt-1 text-sm" style={{ color: '#FF5271' }}>
                       {errors.howDidYouHear.message}

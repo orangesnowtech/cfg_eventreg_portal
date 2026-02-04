@@ -6,7 +6,10 @@ export type GuestType =
   | "Visitor"
   | "Friend of the House"
   | "Media/Press"
-  | "Organizer";
+  | "Organizer"
+  | "Partner"
+  | "Staff"
+  | "Vendor";
 
 export type HowDidYouHear = 
   | "Social Media"
@@ -14,6 +17,7 @@ export type HowDidYouHear =
   | "Friend/Colleague"
   | "Website"
   | "Event Partner"
+  | "Word of Mouth"
   | "Other";
 
 export interface Guest {

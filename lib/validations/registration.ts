@@ -43,7 +43,10 @@ export const registrationSchema = z.object({
     'Visitor',
     'Friend of the House',
     'Media/Press',
-    'Organizer'
+    'Organizer',
+    'Partner',
+    'Staff',
+    'Vendor'
   ], {
     message: 'Please select a valid guest type'
   }),
@@ -54,6 +57,7 @@ export const registrationSchema = z.object({
     'Friend/Colleague',
     'Website',
     'Event Partner',
+    'Word of Mouth',
     'Other'
   ], {
     message: 'Please select how you heard about this event'

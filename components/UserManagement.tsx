@@ -136,7 +136,7 @@ export default function UserManagement() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="admin@example.com"
+                  placeholder="admin@cfgafrica.com"
                 />
               </div>
 
@@ -150,7 +150,7 @@ export default function UserManagement() {
                   value={formData.displayName}
                   onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  placeholder="John Doe"
+                  placeholder="Adebayo Okafor"
                 />
               </div>
 
