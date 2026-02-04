@@ -5,31 +5,46 @@ runConfig:
   # Runtime environment
   runtime: nodejs20
   
-  # Secret environment variables (stored in Google Secret Manager)
-  secrets:
-    # Public Firebase client config (NEXT_PUBLIC_* variables)
+  # Public environment variables (client-side - available in browser)
+  env:
     - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-      secret: NEXT_PUBLIC_FIREBASE_API_KEY
-      projectId: cfg-event-regportal
+      value: AIzaSyC3762Bk_ORisX7lORyBJ_-HHDvM-qI_24
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      projectId: cfg-event-regportal
+      value: cfg-event-regportal.firebaseapp.com
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      projectId: cfg-event-regportal
+      value: cfg-event-regportal
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      projectId: cfg-event-regportal
+      value: cfg-event-regportal.firebasestorage.app
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-      secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-      projectId: cfg-event-regportal
+      value: "886647028603"
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-      secret: NEXT_PUBLIC_FIREBASE_APP_ID
-      projectId: cfg-event-regportal
+      value: 1:886647028603:web:ecf0c207bbf3e0b27c1bde
+      availability:
+        - BUILD
+        - RUNTIME
     - variable: NEXT_PUBLIC_APP_URL
-      secret: NEXT_PUBLIC_APP_URL
-      projectId: cfg-event-regportal
-    
+      value: https://events.cfgafrica.com
+      availability:
+        - BUILD
+        - RUNTIME
+  
+  # Secret environment variables (server-side only - stored in Google Secret Manager)
+  secrets:
     # Server-side Firebase Admin SDK credentials
     - variable: FIREBASE_PROJECT_ID
       secret: FIREBASE_PROJECT_ID
