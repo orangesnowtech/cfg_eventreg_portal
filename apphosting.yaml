@@ -8,16 +8,34 @@ runConfig:
   # Environment variables (public - available to client-side code)
   env:
     - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+      availability:
+        - BUILD
+        - RUNTIME
       value: AIzaSyC3762Bk_ORisX7lORyBJ_-HHDvM-qI_24
     - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      availability:
+        - BUILD
+        - RUNTIME
       value: cfg-event-regportal.firebaseapp.com
     - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      availability:
+        - BUILD
+        - RUNTIME
       value: cfg-event-regportal
     - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+      availability:
+        - BUILD
+        - RUNTIME
       value: cfg-event-regportal.firebasestorage.app
     - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+      availability:
+        - BUILD
+        - RUNTIME
       value: "886647028603"
     - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+      availability:
+        - BUILD
+        - RUNTIME
       value: 1:886647028603:web:ecf0c207bbf3e0b27c1bde
     - variable: NEXT_PUBLIC_APP_URL
       availability:
