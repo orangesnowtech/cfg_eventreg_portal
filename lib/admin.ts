@@ -32,7 +32,36 @@ function initAdmin() {
   }
 }
 
-initAdmin();
+// Lazy initialization - only init when actually accessed
+let initialized = false;
 
-export const adminDb = getFirestore();
-export const adminAuth = getAuth();
+function ensureInitialized() {
+  if (!initialized) {
+    initAdmin();
+    initialized = true;
+  }
+}
+
+// Export lazy getters that ensure initialization
+export const getAdminDb = () => {
+  ensureInitialized();
+  return getFirestore();
+};
+
+export const getAdminAuth = () => {
+  ensureInitialized();
+  return getAuth();
+};
+
+// For backward compatibility, export as properties
+export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
+  get(target, prop) {
+    return getAdminDb()[prop as keyof ReturnType<typeof getFirestore>];
+  }
+});
+
+export const adminAuth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(target, prop) {
+    return getAdminAuth()[prop as keyof ReturnType<typeof getAuth>];
+  }
+});
