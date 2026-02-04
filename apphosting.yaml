@@ -2,67 +2,38 @@
 # Documentation: https://firebase.google.com/docs/app-hosting
 
 runConfig:
-  # Runtime environment
-  runtime: nodejs20
-  
-  # Public environment variables (client-side - available in browser)
-  env:
-    - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-      value: AIzaSyC3762Bk_ORisX7lORyBJ_-HHDvM-qI_24
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      value: cfg-event-regportal.firebaseapp.com
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-      value: cfg-event-regportal
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-      value: cfg-event-regportal.firebasestorage.app
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-      value: "886647028603"
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-      value: 1:886647028603:web:ecf0c207bbf3e0b27c1bde
-      availability:
-        - BUILD
-        - RUNTIME
-    - variable: NEXT_PUBLIC_APP_URL
-      value: https://events.cfgafrica.com
-      availability:
-        - BUILD
-        - RUNTIME
-  
-  # Secret environment variables (server-side only - stored in Google Secret Manager)
-  secrets:
-    # Server-side Firebase Admin SDK credentials
-    - variable: FIREBASE_PROJECT_ID
-      secret: FIREBASE_PROJECT_ID
-    - variable: FIREBASE_CLIENT_EMAIL
-      secret: FIREBASE_CLIENT_EMAIL
-    - variable: FIREBASE_PRIVATE_KEY
-      secret: FIREBASE_PRIVATE_KEY
-    
-    # Zeptomail credentials
-    - variable: ZEPTOMAIL_API_KEY
-      secret: ZEPTOMAIL_API_KEY
-    - variable: ZEPTOMAIL_FROM_EMAIL
-      secret: ZEPTOMAIL_FROM_EMAIL
-    - variable: ZEPTOMAIL_FROM_NAME
-      secret: ZEPTOMAIL_FROM_NAME
+  minInstances: 0
 
-# Cloud Build configuration
-buildConfig:
-  runtime: nodejs20
-  buildCommand: npm run build
-  installCommand: npm ci
+# Environment variables and secrets (top-level)
+env:
+  # Client-side Firebase configuration (NEXT_PUBLIC_*)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: NEXT_PUBLIC_FIREBASE_APP_ID
+  - variable: NEXT_PUBLIC_APP_URL
+    secret: NEXT_PUBLIC_APP_URL
+  
+  # Server-side Firebase Admin SDK credentials
+  - variable: FIREBASE_PROJECT_ID
+    secret: FIREBASE_PROJECT_ID
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_CLIENT_EMAIL
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY
+  
+  # Zeptomail credentials
+  - variable: ZEPTOMAIL_API_KEY
+    secret: ZEPTOMAIL_API_KEY
+  - variable: ZEPTOMAIL_FROM_EMAIL
+    secret: ZEPTOMAIL_FROM_EMAIL
+  - variable: ZEPTOMAIL_FROM_NAME
+    secret: ZEPTOMAIL_FROM_NAME
