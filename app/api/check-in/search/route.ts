@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/admin';
 import type { Guest } from '@/types/guest';
 
+// Extend Guest type to include Firestore document ID
+interface GuestWithId extends Guest {
+  id: string;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -15,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Search by access code (exact match) or first/last name (case-insensitive partial match)
-    let guests: Guest[] = [];
+    let guests: GuestWithId[] = [];
 
     // First, try exact access code match (most common case)
     if (query.length === 6 && /^[A-Z0-9]+$/.test(query)) {
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
         guests.push({
           id: accessCodeSnapshot.docs[0].id,
           ...data,
-        } as Guest);
+        } as GuestWithId);
       }
     }
 
@@ -47,7 +52,7 @@ export async function GET(request: NextRequest) {
           guests.push({
             id: doc.id,
             ...data,
-          } as Guest);
+          } as GuestWithId);
         }
       }
     }
