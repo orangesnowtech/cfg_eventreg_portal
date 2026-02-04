@@ -45,11 +45,17 @@ function ensureInitialized() {
 // Export lazy getters that ensure initialization
 export const getAdminDb = () => {
   ensureInitialized();
+  if (getApps().length === 0) {
+    throw new Error('Firebase Admin SDK failed to initialize. Check environment variables.');
+  }
   return getFirestore();
 };
 
 export const getAdminAuth = () => {
   ensureInitialized();
+  if (getApps().length === 0) {
+    throw new Error('Firebase Admin SDK failed to initialize. Check environment variables.');
+  }
   return getAuth();
 };
 
