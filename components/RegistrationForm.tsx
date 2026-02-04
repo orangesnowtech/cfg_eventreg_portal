@@ -27,6 +27,8 @@ export default function RegistrationForm() {
     setErrorMessage('');
     setAccessCode('');
 
+    console.log('Submitting registration data:', data);
+
     try {
       const response = await fetch('/api/register', {
         method: 'POST',
@@ -37,11 +39,23 @@ export default function RegistrationForm() {
       });
 
       const result = await response.json();
+      console.log('Registration response:', { status: response.status, result });
 
       if (!response.ok) {
+        console.error('Registration failed:', result);
+        
+        // Show detailed validation errors if available
+        if (result.details && Array.isArray(result.details)) {
+          const errorDetails = result.details.map((err: { path: string[]; message: string }) => 
+            `${err.path.join('.')}: ${err.message}`
+          ).join(', ');
+          throw new Error(`${result.error}\n\nDetails: ${errorDetails}`);
+        }
+        
         throw new Error(result.error || 'Registration failed');
       }
 
+      console.log('Registration successful!', result);
       setSubmitStatus('success');
       setAccessCode(result.accessCode);
       reset();
@@ -49,8 +63,9 @@ export default function RegistrationForm() {
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
+      console.error('Registration error:', error);
       setSubmitStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
+      setErrorMessage(error instanceof Error ? error.message : 'An error occurred during registration. Please try again.');
       
       // Scroll to top to show error message
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -192,11 +207,11 @@ export default function RegistrationForm() {
               border: '2px solid #FF5271' 
             }}>
               <AlertCircle className="h-6 w-6 mr-3 shrink-0 mt-0.5" style={{ color: '#FF5271' }} />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-lg" style={{ color: '#FF5271' }}>
                   Registration Failed
                 </h3>
-                <p className="text-sm mt-1" style={{ color: '#d43f5a' }}>
+                <p className="text-sm mt-1 whitespace-pre-wrap" style={{ color: '#d43f5a' }}>
                   {errorMessage}
                 </p>
               </div>

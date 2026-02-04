@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validationResult = registrationSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('Validation error:', validationResult.error.issues);
       return NextResponse.json(
         { error: 'Invalid form data', details: validationResult.error.issues },
         { status: 400 }
@@ -113,6 +114,11 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Registration error:', error);
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return NextResponse.json(
       { error: 'An error occurred during registration. Please try again.' },
       { status: 500 }
