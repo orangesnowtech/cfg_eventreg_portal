@@ -7,8 +7,9 @@ import { getAuth } from 'firebase-admin/auth';
  * Used for server-side operations (API routes)
  */
 function initAdmin() {
-  // Skip initialization during build time
-  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_PROJECT_ID) {
+  // Skip initialization during build time (secrets not available during build)
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    console.log('Firebase Admin: credentials not available, skipping initialization (build time)');
     return;
   }
 
@@ -18,10 +19,15 @@ function initAdmin() {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
     if (!projectId || !clientEmail || !privateKey) {
-      console.warn('Firebase Admin credentials not found. Skipping initialization.');
+      console.error('Firebase Admin credentials incomplete:', {
+        hasProjectId: !!projectId,
+        hasClientEmail: !!clientEmail,
+        hasPrivateKey: !!privateKey,
+      });
       return;
     }
 
+    console.log('Initializing Firebase Admin SDK...');
     initializeApp({
       credential: cert({
         projectId,
@@ -29,6 +35,7 @@ function initAdmin() {
         privateKey,
       }),
     });
+    console.log('Firebase Admin SDK initialized successfully');
   }
 }
 
@@ -45,16 +52,30 @@ function ensureInitialized() {
 // Export lazy getters that ensure initialization
 export const getAdminDb = () => {
   ensureInitialized();
-  if (getApps().length === 0) {
-    throw new Error('Firebase Admin SDK failed to initialize. Check environment variables.');
+  const apps = getApps();
+  if (apps.length === 0) {
+    console.error('Firebase Admin SDK failed to initialize. Environment check:', {
+      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'present' : 'missing',
+      FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'present' : 'missing',
+      FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'present' : 'missing',
+      NODE_ENV: process.env.NODE_ENV,
+    });
+    throw new Error('Firebase Admin SDK failed to initialize. Secrets may not be loaded from Secret Manager.');
   }
   return getFirestore();
 };
 
 export const getAdminAuth = () => {
   ensureInitialized();
-  if (getApps().length === 0) {
-    throw new Error('Firebase Admin SDK failed to initialize. Check environment variables.');
+  const apps = getApps();
+  if (apps.length === 0) {
+    console.error('Firebase Admin SDK failed to initialize. Environment check:', {
+      FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID ? 'present' : 'missing',
+      FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ? 'present' : 'missing',
+      FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY ? 'present' : 'missing',
+      NODE_ENV: process.env.NODE_ENV,
+    });
+    throw new Error('Firebase Admin SDK failed to initialize. Secrets may not be loaded from Secret Manager.');
   }
   return getAuth();
 };
