@@ -4,19 +4,29 @@ import { formatGuestName } from '@/types/guest';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== Send Confirmation Email API Called ===');
     const body = await request.json();
     const { guest } = body as { guest: Guest };
 
     if (!guest || !guest.email || !guest.accessCode) {
+      console.error('Invalid guest data:', { hasGuest: !!guest, hasEmail: !!guest?.email, hasAccessCode: !!guest?.accessCode });
       return NextResponse.json(
         { error: 'Guest data is required' },
         { status: 400 }
       );
     }
 
+    console.log('Sending email to:', guest.email);
+
     const apiKey = process.env.ZEPTOMAIL_API_KEY;
     const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || 'noreply@cfgafrica.com';
     const fromName = process.env.ZEPTOMAIL_FROM_NAME || 'CFG Africa Events';
+
+    console.log('Email configuration:', {
+      hasApiKey: !!apiKey,
+      fromEmail,
+      fromName,
+    });
 
     if (!apiKey) {
       console.error('Zeptomail API key not configured');
@@ -186,6 +196,7 @@ Visit us at https://cfgafrica.com
     `;
 
     // Send email via Zeptomail
+    console.log('Calling Zeptomail API...');
     const response = await fetch(zeptomailUrl, {
       method: 'POST',
       headers: {
@@ -212,18 +223,29 @@ Visit us at https://cfgafrica.com
       }),
     });
 
+    console.log('Zeptomail response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Zeptomail error:', errorData);
+      console.error('Zeptomail error response:', errorData);
       throw new Error('Failed to send email');
     }
+
+    const responseData = await response.json();
+    console.log('Email sent successfully:', responseData);
 
     return NextResponse.json(
       { success: true, message: 'Confirmation email sent successfully' },
       { status: 200 }
     );
   } catch (error) {
+    console.error('=== Email Sending Error ===');
     console.error('Email sending error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    console.error('===========================');
     return NextResponse.json(
       { error: 'Failed to send confirmation email' },
       { status: 500 }
