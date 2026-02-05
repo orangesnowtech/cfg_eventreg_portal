@@ -99,19 +99,19 @@ export default function CheckInForm() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Guest Check-In</h1>
-          <p className="text-gray-600">Search by access code, first name, or last name</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">Guest Check-In</h1>
+          <p className="text-gray-600 dark:text-gray-300">Search by access code, first name, or last name</p>
         </div>
 
         {/* Search Form */}
-        <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
           <form onSubmit={handleSearch} className="space-y-4">
             <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Access Code, First Name, or Last Name
               </label>
               <div className="relative">
@@ -151,12 +151,12 @@ export default function CheckInForm() {
 
         {/* Not Found Message */}
         {searchStatus === 'not-found' && (
-          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 mb-6">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-lg p-6 mb-6">
             <div className="flex items-start">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 mr-3 shrink-0 mt-0.5" />
+              <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mr-3 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-yellow-800 font-semibold text-lg">Guest Not Found</h3>
-                <p className="text-yellow-700 mt-1">
+                <h3 className="text-yellow-800 dark:text-yellow-300 font-semibold text-lg">Guest Not Found</h3>
+                <p className="text-yellow-700 dark:text-yellow-400 mt-1">
                   No registration found for &ldquo;{searchQuery}&rdquo;. Please verify the access code or name.
                 </p>
               </div>
@@ -193,11 +193,11 @@ export default function CheckInForm() {
 
         {/* Multiple Results List */}
         {searchStatus === 'found' && guests.length > 1 && !selectedGuest && !checkInSuccess && (
-          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Found {guests.length} guests matching &ldquo;{searchQuery}&rdquo;
             </h3>
-            <p className="text-sm text-gray-600 mb-4">Select a guest to view details and check in:</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Select a guest to view details and check in:</p>
             <div className="space-y-3">
               {guests.map((guestItem) => (
                 <button
@@ -211,9 +211,9 @@ export default function CheckInForm() {
                         <User className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{formatGuestName(guestItem)}</p>
-                        <p className="text-sm text-gray-600">{guestItem.email}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="font-semibold text-gray-900 dark:text-white">{formatGuestName(guestItem)}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{guestItem.email}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {guestItem.organizationName} • Code: {guestItem.accessCode}
                         </p>
                       </div>
@@ -242,7 +242,7 @@ export default function CheckInForm() {
 
         {/* Guest Details Card */}
         {searchStatus === 'found' && selectedGuest && !checkInSuccess && (
-          <div className="bg-white shadow-xl rounded-lg overflow-hidden border-2 border-gray-200">
+          <div className="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
             {/* Back to Results Button (if multiple results) */}
             {guests.length > 1 && (
               <div className="bg-gray-50 border-b px-4 py-3">
@@ -277,19 +277,19 @@ export default function CheckInForm() {
                   <User className="h-8 w-8 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{formatGuestName(selectedGuest)}</h2>
-                  <p className="text-gray-600">{selectedGuest.email}</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{formatGuestName(selectedGuest)}</h2>
+                  <p className="text-gray-600 dark:text-gray-300">{selectedGuest.email}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Phone</p>
-                    <p className="font-medium text-gray-900">{selectedGuest.phone}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Phone</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedGuest.phone}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Access Code</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Access Code</p>
                     <p className="font-mono font-bold text-lg text-blue-600">{selectedGuest.accessCode}</p>
                   </div>
                 </div>
@@ -298,14 +298,14 @@ export default function CheckInForm() {
                   <div className="flex items-start mb-3">
                     <Briefcase className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{selectedGuest.jobTitle}</p>
-                      <p className="text-gray-600">{selectedGuest.organizationName}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{selectedGuest.jobTitle}</p>
+                      <p className="text-gray-600 dark:text-gray-300">{selectedGuest.organizationName}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-500 mb-1">Guest Type</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Guest Type</p>
                   <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
                     {selectedGuest.guestType}
                   </span>
@@ -373,3 +373,6 @@ export default function CheckInForm() {
     </div>
   );
 }
+
+
+

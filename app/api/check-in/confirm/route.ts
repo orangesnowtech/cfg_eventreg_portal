@@ -77,6 +77,44 @@ export async function POST(request: NextRequest) {
       timestamp: now.toISOString(),
     });
 
+    // Send welcome email
+    try {
+      console.log('Attempting to send welcome email...');
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const emailUrl = new URL('/api/send-welcome', baseUrl).toString();
+      console.log('Welcome email API URL:', emailUrl);
+      
+      const emailResponse = await fetch(emailUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          guest: {
+            ...guestData,
+            id: guestDoc.id,
+            checkedIn: true,
+            checkedInAt: now.toISOString(),
+          },
+        }),
+      });
+      
+      console.log('Welcome email API response status:', emailResponse.status);
+      
+      if (!emailResponse.ok) {
+        const emailError = await emailResponse.json();
+        console.error('Welcome email API error response:', emailError);
+      } else {
+        console.log('Welcome email sent successfully');
+      }
+    } catch (emailError) {
+      console.error('Failed to send welcome email - exception:', emailError);
+      if (emailError instanceof Error) {
+        console.error('Email error message:', emailError.message);
+      }
+      // Don't fail the check-in if email fails
+    }
+
     // Return updated guest data
     const updatedGuest: GuestWithId = {
       id: guestDoc.id,

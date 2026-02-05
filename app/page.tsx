@@ -4,9 +4,9 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="min-h-screen" style={{ background: '#E0FAF4' }}>
+    <div className="min-h-screen bg-[#E0FAF4] dark:bg-gray-900">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm" style={{ borderColor: '#27D2A9' }}>
+      <header className="border-b border-[#27D2A9] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center text-center gap-3">
             <Image 
@@ -21,15 +21,13 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <Link 
               href="/check-in"
-              className="text-sm font-medium transition-colors"
-              style={{ color: '#27D2A9' }}
+              className="text-sm font-medium transition-colors text-[#27D2A9] hover:text-[#1fa884]"
             >
               Staff Check-in
             </Link>
             <Link 
               href="/admin"
-              className="text-sm font-medium transition-colors"
-              style={{ color: '#092358' }}
+              className="text-sm font-medium transition-colors text-[#092358] dark:text-blue-400 hover:text-[#0a2a6e] dark:hover:text-blue-300"
             >
               Admin →
             </Link>
@@ -42,10 +40,10 @@ export default function Home() {
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center mb-8">
-          <h2 className="text-4xl font-bold mb-4" style={{ color: '#092358', fontFamily: 'Georgia, serif' }}>
+          <h2 className="text-4xl font-bold mb-4 text-[#092358] dark:text-blue-300" style={{ fontFamily: 'Georgia, serif' }}>
             Register for Our Event
           </h2>
-          <p className="text-lg" style={{ color: '#333' }}>
+          <p className="text-lg text-gray-700 dark:text-gray-300">
             Join us for an exclusive experience. Fill out the form below to secure your spot
             and receive your unique access code.
           </p>
@@ -58,12 +56,12 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-16 border-t bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8 text-center text-sm text-gray-600">
+      <footer className="mt-16 border-t border-gray-300 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-8 text-center text-sm text-gray-600 dark:text-gray-400">
           <p>© 2026 CFG Africa. All rights reserved.</p>
           <p className="mt-2">
             Questions? Contact us at{" "}
-            <a href="mailto:events@cfgafrica.com" className="text-blue-600 hover:underline">
+            <a href="mailto:events@cfgafrica.com" className="text-blue-600 dark:text-blue-400 hover:underline">
               events@cfgafrica.com
             </a>
           </p>
