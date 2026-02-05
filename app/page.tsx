@@ -16,9 +16,7 @@ export default function Home() {
               height={150}
               className="object-contain"
             />
-            
           </div>
-        </div>
         </div>
         {/* Signature Line */}
         <div className="cfg-signature-line"></div>
