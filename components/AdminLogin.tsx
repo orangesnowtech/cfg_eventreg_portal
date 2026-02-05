@@ -18,8 +18,13 @@ export default function AdminLogin() {
 
     try {
       await signIn(email, password);
-    } catch {
-      setError("Invalid email or password");
+    } catch (error) {
+      console.error('Login error:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Invalid email or password. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }

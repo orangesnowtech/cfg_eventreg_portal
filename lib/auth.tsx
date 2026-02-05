@@ -43,8 +43,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!auth) throw new Error('Firebase Auth not initialized');
-    await signInWithEmailAndPassword(auth, email, password);
+    if (!auth) {
+      throw new Error('Firebase Auth not initialized. Please check your environment variables.');
+    }
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error('Firebase sign in error:', error);
+      // Provide more specific error messages
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No user found with this email. Please contact an administrator.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-credential') {
+        throw new Error('Invalid credentials. Please check your email and password.');
+      } else if (error.code === 'auth/network-request-failed') {
+        throw new Error('Network error. Please check your internet connection.');
+      } else {
+        throw new Error(error.message || 'Authentication failed. Please try again.');
+      }
+    }
   };
 
   const signOut = async () => {

@@ -20,12 +20,6 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <Link 
-              href="/check-in"
-              className="text-sm font-medium transition-colors text-[#27D2A9] hover:text-[#1fa884]"
-            >
-              Staff Check-in
-            </Link>
-            <Link 
               href="/admin"
               className="text-sm font-medium transition-colors text-[#092358] dark:text-blue-400 hover:text-[#0a2a6e] dark:hover:text-blue-300"
             >
