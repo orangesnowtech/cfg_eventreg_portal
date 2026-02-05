@@ -15,6 +15,17 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Debug configuration in development
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('Firebase config check:', {
+    hasApiKey: !!firebaseConfig.apiKey,
+    hasAuthDomain: !!firebaseConfig.authDomain,
+    hasProjectId: !!firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain,
+    projectId: firebaseConfig.projectId,
+  });
+}
+
 // Check if we have valid config (skip during build if env vars are missing)
 const hasValidConfig = firebaseConfig.apiKey && firebaseConfig.projectId;
 
