@@ -8,13 +8,32 @@ import { getAuth } from 'firebase-admin/auth';
  */
 function initAdmin() {
   // Skip initialization during build time (secrets not available during build)
-  if (!process.env.FIREBASE_PROJECT_ID) {
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  
+  if (!serviceAccountJson && !projectId) {
     console.log('Firebase Admin: credentials not available, skipping initialization (build time)');
     return;
   }
 
   if (getApps().length === 0) {
-    const projectId = process.env.FIREBASE_PROJECT_ID;
+    console.log('Initializing Firebase Admin SDK...');
+    
+    // Option 1: Use service account JSON (preferred)
+    if (serviceAccountJson) {
+      try {
+        const serviceAccount = JSON.parse(serviceAccountJson);
+        initializeApp({
+          credential: cert(serviceAccount),
+        });
+        console.log('Firebase Admin SDK initialized successfully (using service account JSON)');
+        return;
+      } catch (error) {
+        console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', error);
+      }
+    }
+    
+    // Option 2: Use individual credentials (fallback)
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
@@ -27,7 +46,6 @@ function initAdmin() {
       return;
     }
 
-    console.log('Initializing Firebase Admin SDK...');
     initializeApp({
       credential: cert({
         projectId,
@@ -35,7 +53,7 @@ function initAdmin() {
         privateKey,
       }),
     });
-    console.log('Firebase Admin SDK initialized successfully');
+    console.log('Firebase Admin SDK initialized successfully (using individual credentials)');
   }
 }
 
