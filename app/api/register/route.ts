@@ -92,7 +92,12 @@ export async function POST(request: NextRequest) {
     // Send confirmation email
     try {
       console.log('Attempting to send confirmation email...');
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-confirmation`, {
+      // Use relative URL for internal server-to-server call
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const emailUrl = new URL('/api/send-confirmation', baseUrl).toString();
+      console.log('Email API URL:', emailUrl);
+      
+      const emailResponse = await fetch(emailUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
