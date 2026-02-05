@@ -6,10 +6,13 @@ import type { Guest, GuestFormData } from '@/types/guest';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Registration API called');
     const body = await request.json();
+    console.log('Request body parsed successfully');
 
     // Validate input
     const validationResult = registrationSchema.safeParse(body);
+    console.log('Validation result:', validationResult.success ? 'passed' : 'failed');
     if (!validationResult.success) {
       console.error('Validation error:', validationResult.error.issues);
       return NextResponse.json(
@@ -20,12 +23,14 @@ export async function POST(request: NextRequest) {
 
     const formData: GuestFormData = validationResult.data;
 
+    console.log('Checking for existing guest...');
     // Check if email already registered
     const existingGuest = await adminDb
       .collection('guests')
       .where('email', '==', formData.email.toLowerCase())
       .limit(1)
       .get();
+    console.log('Existing guest check complete, found:', !existingGuest.empty);
 
     if (!existingGuest.empty) {
       return NextResponse.json(
@@ -113,12 +118,15 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.error('===== REGISTRATION ERROR =====');
+    console.error('Error type:', error?.constructor?.name);
     console.error('Registration error:', error);
     // Log more details about the error
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
+    console.error('===========================');
     return NextResponse.json(
       { error: 'An error occurred during registration. Please try again.' },
       { status: 500 }
