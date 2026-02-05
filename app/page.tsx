@@ -18,14 +18,7 @@ export default function Home() {
             />
             
           </div>
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/admin"
-              className="text-sm font-medium transition-colors text-[#092358] dark:text-blue-400 hover:text-[#0a2a6e] dark:hover:text-blue-300"
-            >
-              Admin →
-            </Link>
-          </div>
+        </div>
         </div>
         {/* Signature Line */}
         <div className="cfg-signature-line"></div>
