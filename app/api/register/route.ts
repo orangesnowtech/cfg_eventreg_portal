@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-confirmation`, {
+      console.log('Attempting to send confirmation email...');
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-confirmation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,8 +104,21 @@ export async function POST(request: NextRequest) {
           },
         }),
       });
+      
+      console.log('Email API response status:', emailResponse.status);
+      
+      if (!emailResponse.ok) {
+        const emailError = await emailResponse.json();
+        console.error('Email API error response:', emailError);
+      } else {
+        console.log('Confirmation email sent successfully');
+      }
     } catch (emailError) {
-      console.error('Failed to send confirmation email:', emailError);
+      console.error('Failed to send confirmation email - exception:', emailError);
+      if (emailError instanceof Error) {
+        console.error('Email error message:', emailError.message);
+        console.error('Email error stack:', emailError.stack);
+      }
       // Don't fail the registration if email fails
     }
 
