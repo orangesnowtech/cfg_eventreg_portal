@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 /**
  * Initialize Firebase Admin SDK
@@ -96,6 +97,23 @@ export const getAdminAuth = () => {
     throw new Error('Firebase Admin SDK failed to initialize. Secrets may not be loaded from Secret Manager.');
   }
   return getAuth();
+};
+
+/**
+ * Cloud Storage bucket used for event banners. Uses the same bucket as the client
+ * SDK config; the Admin SDK bypasses Storage security rules.
+ */
+export const getAdminBucket = () => {
+  ensureInitialized();
+  const bucketName =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!bucketName) {
+    throw new Error(
+      'No storage bucket configured. Set NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.'
+    );
+  }
+  return getStorage().bucket(bucketName);
 };
 
 // For backward compatibility, export as properties

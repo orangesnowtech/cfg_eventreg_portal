@@ -12,16 +12,23 @@ import {
   TrendingUp,
   Shield,
   Activity,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import UserManagement from "./UserManagement";
 import ActivityLogs from "./ActivityLogs";
+import EventManager from "./EventManager";
 
+// A row in the unified guest list: either a legacy guest or an event registration,
+// normalised to a common shape and tagged with the event it belongs to.
 interface GuestWithId extends Guest {
   id: string;
+  eventId: string;
+  eventName: string;
+  source: "legacy" | "event";
 }
 
-type TabType = "guests" | "users" | "logs";
+type TabType = "events" | "guests" | "users" | "logs";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -31,7 +38,8 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<TabType>("guests");
+  const [filterEvent, setFilterEvent] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<TabType>("events");
   const [userRole, setUserRole] = useState<AdminRole | null>(null);
 
   const fetchUserRole = useCallback(async () => {
@@ -60,6 +68,11 @@ export default function AdminDashboard() {
   const applyFilters = useCallback(() => {
     let filtered = [...guests];
 
+    // Event filter
+    if (filterEvent !== "all") {
+      filtered = filtered.filter((guest) => guest.eventId === filterEvent);
+    }
+
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(
@@ -85,20 +98,25 @@ export default function AdminDashboard() {
     }
 
     setFilteredGuests(filtered);
-  }, [searchTerm, filterType, filterStatus, guests]);
+  }, [searchTerm, filterType, filterStatus, filterEvent, guests]);
 
-  useEffect(() => {
-    fetchGuests();
-    fetchUserRole();
-  }, [fetchUserRole]);
+  // Distinct events present in the guest data, for the event dropdown.
+  const eventOptions = Array.from(
+    guests.reduce((map, guest) => {
+      const current = map.get(guest.eventId) || { name: guest.eventName, count: 0 };
+      current.count += 1;
+      return map.set(guest.eventId, current);
+    }, new Map<string, { name: string; count: number }>())
+  ).sort((a, b) => a[1].name.localeCompare(b[1].name));
 
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
-
-  const fetchGuests = async () => {
+  const fetchGuests = useCallback(async () => {
     try {
-      const response = await fetch("/api/guests");
+      if (!user) return;
+      const token = await user.getIdToken();
+      const response = await fetch("/api/admin/registrations", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
       const data = await response.json();
       setGuests(data.guests || []);
       setFilteredGuests(data.guests || []);
@@ -109,10 +127,20 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchGuests();
+    fetchUserRole();
+  }, [fetchGuests, fetchUserRole]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const downloadCSV = () => {
     const headers = [
+      "Event",
       "First Name",
       "Last Name",
       "Email",
@@ -127,6 +155,7 @@ export default function AdminDashboard() {
     ];
 
     const rows = filteredGuests.map((guest) => [
+      guest.eventName || "",
       guest.firstName || "",
       guest.lastName || "",
       guest.email || "",
@@ -155,9 +184,9 @@ export default function AdminDashboard() {
     a.click();
   };
 
-  // Statistics
-  const totalGuests = guests.length;
-  const checkedInGuests = guests.filter((g) => g.checkedIn).length;
+  // Statistics reflect the current filter so selecting an event shows its numbers.
+  const totalGuests = filteredGuests.length;
+  const checkedInGuests = filteredGuests.filter((g) => g.checkedIn).length;
   const pendingGuests = totalGuests - checkedInGuests;
   const checkInRate =
     totalGuests > 0 ? ((checkedInGuests / totalGuests) * 100).toFixed(1) : 0;
@@ -172,9 +201,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Tab Navigation - Only show for super_admin */}
-      {userRole === "super_admin" && (
-        <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex gap-1">
+      {/* Tab Navigation - events and guests for all admins, rest for super_admin */}
+      <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex flex-wrap gap-1">
+          <button
+            onClick={() => setActiveTab("events")}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              activeTab === "events"
+                ? "bg-purple-600 text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            <Calendar className="h-4 w-4 inline mr-2" />
+            Events
+          </button>
           <button
             onClick={() => setActiveTab("guests")}
             className={`px-4 py-2 rounded-md font-medium transition-colors ${
@@ -186,6 +225,8 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 inline mr-2" />
             Guest Management
           </button>
+          {userRole === "super_admin" && (
+            <>
           <button
             onClick={() => setActiveTab("users")}
             className={`px-4 py-2 rounded-md font-medium transition-colors ${
@@ -208,11 +249,14 @@ export default function AdminDashboard() {
             <Activity className="h-4 w-4 inline mr-2" />
             Activity Logs
           </button>
-        </div>
-      )}
+            </>
+          )}
+      </div>
 
       {/* Conditional Content Based on Active Tab */}
-      {activeTab === "users" && userRole === "super_admin" ? (
+      {activeTab === "events" ? (
+        <EventManager />
+      ) : activeTab === "users" && userRole === "super_admin" ? (
         <UserManagement />
       ) : activeTab === "logs" && userRole === "super_admin" ? (
         <ActivityLogs />
@@ -282,6 +326,23 @@ export default function AdminDashboard() {
             />
           </div>
 
+          {/* Event Filter */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <select
+              value={filterEvent}
+              onChange={(e) => setFilterEvent(e.target.value)}
+              className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+            >
+              <option value="all">All Events</option>
+              {eventOptions.map(([id, meta]) => (
+                <option key={id} value={id}>
+                  {meta.name} ({meta.count})
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Guest Type Filter */}
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -322,7 +383,7 @@ export default function AdminDashboard() {
         </div>
 
         <p className="mt-4 text-sm text-gray-600">
-          Showing {filteredGuests.length} of {totalGuests} guests
+          Showing {filteredGuests.length} of {guests.length} guests
         </p>
       </div>
 
@@ -337,6 +398,9 @@ export default function AdminDashboard() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Event
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Organization
@@ -366,6 +430,11 @@ export default function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{guest.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                      {guest.eventName}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">

@@ -1,6 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+ * Dark mode is opt-in: `dark:` utilities apply only inside an element carrying
+ * the `.dark` class, never from the visitor's OS preference. Most of the portal
+ * (all of the admin surface) is styled light-only, so following the OS setting
+ * left near-white body text inherited onto hardcoded white cards.
+ * Add `.dark` to <html> from a theme toggle to switch the app over.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -33,13 +42,6 @@
   --color-cfg-light-blue: #58C8E7;
   --color-cfg-coral: #FF5271;
   --color-cfg-mint: #E0FAF4;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-  }
 }
 
 body {
