@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Search, Loader2, CheckCircle2, AlertTriangle, User, Briefcase, Calendar, Clock } from 'lucide-react';
+import { useAuth } from '@/lib/auth';
 import type { Guest } from '@/types/guest';
 import { formatTimestamp, formatGuestName } from '@/types/guest';
 
@@ -10,6 +11,8 @@ interface GuestWithId extends Guest {
 }
 
 export default function CheckInForm() {
+  const { user } = useAuth();
+  const token = useCallback(async () => (user ? user.getIdToken() : ''), [user]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -32,7 +35,10 @@ export default function CheckInForm() {
     setCheckInSuccess(false);
 
     try {
-      const response = await fetch(`/api/check-in/search?query=${encodeURIComponent(searchQuery.trim())}`);
+      const t = await token();
+      const response = await fetch(`/api/check-in/search?query=${encodeURIComponent(searchQuery.trim())}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
       const result = await response.json();
 
       if (!response.ok) {
@@ -65,10 +71,12 @@ export default function CheckInForm() {
     setErrorMessage('');
 
     try {
+      const t = await token();
       const response = await fetch('/api/check-in/confirm', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${t}`,
         },
         body: JSON.stringify({ guestId: selectedGuest.id }),
       });

@@ -1,97 +1,108 @@
-# PowerShell script to create secrets in Google Secret Manager for Firebase App Hosting
-# Run this script after authenticating with gcloud CLI
+# Creates the secrets Firebase App Hosting reads at runtime.
+#
+# No credential is embedded in this file. An earlier version hardcoded the
+# service account private key and the ZeptoMail API key, which put both in git
+# history on a public repo; values now come from a file and the environment so
+# there is nothing here to leak.
+#
 # Prerequisites:
 #   1. Install gcloud CLI: https://cloud.google.com/sdk/docs/install
 #   2. Run: gcloud auth login
-#   3. Run: gcloud config set project cfg-event-regportal
+#   3. Download a service account JSON key from the Firebase console
+#      (Project Settings -> Service accounts -> Generate new private key)
+#
+# Usage:
+#   $env:ZEPTOMAIL_API_KEY = 'Zoho-enczapikey ...'
+#   .\setup-secrets.ps1 -ServiceAccountFile C:\path\to\service-account.json
 
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$ServiceAccountFile
+)
+
+$ErrorActionPreference = "Stop"
 $PROJECT_ID = "cfg-event-regportal"
+
+if (-not (Test-Path $ServiceAccountFile)) {
+    Write-Host "ERROR: service account file not found: $ServiceAccountFile" -ForegroundColor Red
+    exit 1
+}
+
+if (-not $env:ZEPTOMAIL_API_KEY) {
+    Write-Host "ERROR: set ZEPTOMAIL_API_KEY in your environment first." -ForegroundColor Red
+    Write-Host "  `$env:ZEPTOMAIL_API_KEY = 'Zoho-enczapikey ...'" -ForegroundColor Yellow
+    exit 1
+}
 
 Write-Host "Creating secrets in Google Secret Manager for project: $PROJECT_ID" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-# Enable Secret Manager API (if not already enabled)
 Write-Host "`nEnabling Secret Manager API..." -ForegroundColor Yellow
 gcloud services enable secretmanager.googleapis.com --project=$PROJECT_ID
 
-# Firebase Admin SDK Secrets
-Write-Host "`nCreating FIREBASE_PROJECT_ID secret..." -ForegroundColor Yellow
-"cfg-event-regportal" | gcloud secrets create FIREBASE_PROJECT_ID `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+# Create the secret, or add a new version when it already exists. The previous
+# version of this script printed "updating..." on conflict but never actually
+# updated anything, so a rotated value silently never reached production.
+function Set-Secret {
+    param([string]$Name, [string]$File)
 
-Write-Host "`nCreating FIREBASE_CLIENT_EMAIL secret..." -ForegroundColor Yellow
-"firebase-adminsdk-fbsvc@cfg-event-regportal.iam.gserviceaccount.com" | gcloud secrets create FIREBASE_CLIENT_EMAIL `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+    # $LASTEXITCODE, not $?, because $? reflects Out-Null rather than gcloud.
+    gcloud secrets describe $Name --project=$PROJECT_ID 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        gcloud secrets versions add $Name --data-file=$File --project=$PROJECT_ID | Out-Null
+        Write-Host "  $Name`: new version added"
+    }
+    else {
+        gcloud secrets create $Name --data-file=$File --project=$PROJECT_ID --replication-policy="automatic" | Out-Null
+        Write-Host "  $Name`: created"
+    }
+}
 
-Write-Host "`nCreating FIREBASE_PRIVATE_KEY secret..." -ForegroundColor Yellow
-@"
------BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC33jiF0XSSj8f/
-vPhb1Exfh4xxkC/T3WanfUqgIgzFFdKtHesVcLRD0/7W8ZdHQy2TPha/+heWVPOF
-GAM0dMdQXYadZmuvA0L44/24wY2kVbjaddCI+fKaQ/FHr+6D8FFPTTImzo18jaif
-aq23Mx6Yr4mGnpqADJbg+6YU3dCQMTljK+vm1TkV9b5yTUJkjWzOD3cLt5nwaPG4
-MME+IlYxHUX0HIzVTSBuVOwx0DPf0g0Ghv/f7FKcE+4mEH3A2+VWLw/huKhxEv0n
-20bTuc+mEHvK+nquB5cGptZzefDmbJ9h9yFuoynWfqCFFKqAJZSOX6X8jguL/WXA
-W0gAfSuTAgMBAAECggEARSYOrcz7AU+PkM85vBdYbajlmaP3SL+AJsdI9HY5xTkS
-1UZmLdcIBGZK9f0/vm42SqTUG3jru/7Q4qIIOoccmk3CHZnyL4yTeFUOC5jHMyGF
-9qrONWWC5p9cs3AnzHjpq2BF1zBhJ5GC9AlDsZ1JCXUizH0Db9rMN2qMqFZPZJpq
-3NfBv6bhc65gYr2IccWNxnHzQrSRnzXeD+qdatJ7VZML3VFDdm2IOAoZ3mOv+vQj
-bsJJKSPp9lW8qwEMxxPoXDPhUWL/Il5qKWIR3qagpIkgj88KNUQLIuxqqnlFYn6J
-X090AejVm6GinYD3JdYXQh5X5MIp1oJUovjap5brmQKBgQDq9cIfoZcWpz54ipy2
-9qelKKV99FtcYArXCarkwPsiSJrrpVTgsDLk0qD5CDCEqPRzmcTvfeIZMKuHp+dF
-c7hKVRFEG+9B93NX1CAT7BND0tYRciSDao8NGgeGCVwubDxmV6ZRa/Fw0y5J1J1R
-Mo8CnrdWU/DnNb+NwaZEQMbXrQKBgQDIVToIr3iO8ku/6nleaQwJ5Gwa9znLf/uV
-fEaNFrXnSQdJfOqK8SYBLWSuCMZ+25Yf7Dnf/LJPf79+Er6/oLaibf9Lm9zmqdfa
-V7pK5qX2JCnWWSF6Ce/AruDWYf6Z5iiUYdXiFF0TkcOrZsb3WTqoU99BqAgWUXuU
-nRFAhul4PwKBgQCfkV/Q05EklVhbzOc5arHX/I7Hx5f0WFWETNB+ooDre5uaxaGr
-Jn6p4FHqTqGEtqmtiJSygS94JBGaA3GRPVG/SZ58PuxyRHdVAn72iLFcsmcnWflq
-NogIQdEyOlEcRe2PI5+UVFaYZRNemMJuToPJJ7kjK8bDf0EkKIueds+T0QKBgBv0
-UJHPsnn383wHQwJalDR5LGCi6OytojScz9d2ONHaTesCRFQ5DD2T0P27+b7P82Xm
-97h6sYMIZ3c3NGjXC0UlJj+tsyh4wMcWAMfc4YG0UCY578LwygTQIk2oBPgCttzl
-vgu7HbXSXER5pf/z8ox0j63AvcgnfKAjProLWV7PAoGAM44TmRsBIbvmJRWFFBWr
-WyWfSR8n91pBpOUw4Ub+SKErEnD82Av041j4gDjLA7jpLl+MZQBf9/0KxMBHXVaH
-jyTHVE9OQ9aElNlrncKZkTV+Rz50v4tnEbKrhvJf4cinpGCp1qC5KxlRiUXuc0jn
-pZ3O457TZo3eDxuKFUQsxXY=
------END PRIVATE KEY-----
-"@ | gcloud secrets create FIREBASE_PRIVATE_KEY `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+function Set-SecretValue {
+    param([string]$Name, [string]$Value)
 
-# Zeptomail Secrets
-Write-Host "`nCreating ZEPTOMAIL_API_KEY secret..." -ForegroundColor Yellow
-"Zoho-enczapikey wSsVR612rkakDfsvmGasLr8xmFhTA1uiQEUs3gSjvXX9G/vA8sdtk0OcB1TyHPAWFGFhHDNB8r96yx9T2zpb3th8zF8ACSiF9mqRe1U4J3x17qnvhDzMXWpVmhOPLY0Pwg5rk2BiG8Ak+g==" | gcloud secrets create ZEPTOMAIL_API_KEY `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try {
+        # Write without a trailing newline or BOM so the stored value is exact.
+        [System.IO.File]::WriteAllText($tmp, $Value, (New-Object System.Text.UTF8Encoding $false))
+        Set-Secret -Name $Name -File $tmp
+    }
+    finally {
+        Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
 
-Write-Host "`nCreating ZEPTOMAIL_FROM_EMAIL secret..." -ForegroundColor Yellow
-"noreply@cfgafrica.com" | gcloud secrets create ZEPTOMAIL_FROM_EMAIL `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+Write-Host "`nFirebase Admin SDK credentials..." -ForegroundColor Yellow
+# This is the only Firebase credential apphosting.yaml actually wires up.
+# The older FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
+# secrets are not referenced by the deploy config and are no longer created here.
+Set-Secret -Name "FIREBASE_SERVICE_ACCOUNT_JSON" -File $ServiceAccountFile
 
-Write-Host "`nCreating ZEPTOMAIL_FROM_NAME secret..." -ForegroundColor Yellow
-"CFG Africa Events" | gcloud secrets create ZEPTOMAIL_FROM_NAME `
-  --data-file=- `
-  --project=$PROJECT_ID `
-  --replication-policy="automatic" 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Write-Host "Secret already exists, you can update it manually" -ForegroundColor Gray }
+Write-Host "`nZeptoMail credentials..." -ForegroundColor Yellow
+Set-SecretValue -Name "ZEPTOMAIL_API_KEY" -Value $env:ZEPTOMAIL_API_KEY
+$fromEmail = if ($env:ZEPTOMAIL_FROM_EMAIL) { $env:ZEPTOMAIL_FROM_EMAIL } else { "noreply@cfgafrica.com" }
+$fromName = if ($env:ZEPTOMAIL_FROM_NAME) { $env:ZEPTOMAIL_FROM_NAME } else { "CFG Africa Events" }
+Set-SecretValue -Name "ZEPTOMAIL_FROM_EMAIL" -Value $fromEmail
+Set-SecretValue -Name "ZEPTOMAIL_FROM_NAME" -Value $fromName
+
+Write-Host "`nCron shared secret..." -ForegroundColor Yellow
+# The value Cloud Scheduler presents to /api/cron/reminders. Generated here so it
+# is never checked into the repo. Left alone if it already exists, so re-running
+# this script does not break the configured Scheduler job.
+gcloud secrets describe CRON_SECRET --project=$PROJECT_ID 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "  CRON_SECRET: already exists, keeping the existing value"
+}
+else {
+    $bytes = New-Object byte[] 24
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $CRON_SECRET = ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
+    Set-SecretValue -Name "CRON_SECRET" -Value $CRON_SECRET
+    Write-Host "  Value: $CRON_SECRET"
+    Write-Host "  Use it as the X-Cron-Secret header on the Cloud Scheduler job (see REMINDERS.md)."
+}
 
 Write-Host "`n==================================================================" -ForegroundColor Cyan
-Write-Host "✅ All secrets created successfully!" -ForegroundColor Green
-Write-Host ""
-Write-Host "To verify secrets were created, run:" -ForegroundColor Yellow
-Write-Host "  gcloud secrets list --project=$PROJECT_ID" -ForegroundColor White
-Write-Host ""
-Write-Host "To view a secret value, run:" -ForegroundColor Yellow
-Write-Host "  gcloud secrets versions access latest --secret=FIREBASE_PROJECT_ID --project=$PROJECT_ID" -ForegroundColor White
+Write-Host "Done. Redeploy App Hosting for new secret versions to take effect." -ForegroundColor Green
+Write-Host "`nTo list secrets:"
+Write-Host "  gcloud secrets list --project=$PROJECT_ID"

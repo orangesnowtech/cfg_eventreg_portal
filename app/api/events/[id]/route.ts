@@ -34,7 +34,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const doc = await adminDb.collection("events").doc(id).get();
     if (!doc.exists) return NextResponse.json({ error: "Event not found." }, { status: 404 });
 
-    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions"] as const;
+    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "remindersEnabled"] as const;
 
     if (body.accessMode !== undefined || body.joinUrl !== undefined) {
       const accessError = validateEventAccess(

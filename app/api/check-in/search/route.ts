@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/admin';
+import { requireAdmin, authError } from '@/lib/server-auth';
 import type { Guest } from '@/types/guest';
 
 // Extend Guest type to include Firestore document ID
@@ -9,6 +10,11 @@ interface GuestWithId extends Guest {
 
 export async function GET(request: NextRequest) {
   try {
+    // Guest records carry personal contact details, so searching them is
+    // staff-only. Without this the endpoint is enumerable: a one-letter query
+    // returns every guest whose name contains that letter.
+    await requireAdmin(request);
+
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query')?.trim().toUpperCase();
 
@@ -74,6 +80,9 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+      return authError(error);
+    }
     console.error('Search error:', error);
     return NextResponse.json(
       { error: 'An error occurred during search. Please try again.' },

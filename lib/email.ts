@@ -1,4 +1,5 @@
 import type { EventRecord } from "@/types/event";
+import { eventStartMs } from "@/lib/events";
 
 const ZEPTOMAIL_URL = "https://api.zeptomail.com/v1.1/email";
 
@@ -10,7 +11,7 @@ export interface RegistrationEmailInput {
   isTest?: boolean;
 }
 
-const escapeHtml = (value: string) =>
+export const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -18,10 +19,11 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;");
 
 function formatWhen(event: EventRecord) {
-  if (!event.startAt) return "";
-  const date = new Date(event.startAt);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("en-GB", {
+  // Read through eventStartMs so a start stored without a zone is anchored to the
+  // event's own timezone, and the printed time is the one the admin entered.
+  const startMs = eventStartMs(event);
+  if (startMs === null) return "";
+  return new Date(startMs).toLocaleString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -32,16 +34,16 @@ function formatWhen(event: EventRecord) {
   });
 }
 
-function buildHtml({ event, name, accessCode }: RegistrationEmailInput) {
-  const mode = event.accessMode || "code";
-  const showCode = mode === "code" || mode === "both";
-  const showLink = mode === "link" || mode === "both";
-  const when = formatWhen(event);
-
-  const banner = event.bannerUrl
+/** Banner row, empty when the event has no artwork. Shared by every template. */
+function bannerRow(event: EventRecord) {
+  return event.bannerUrl
     ? `<tr><td style="padding:0;"><img src="${escapeHtml(event.bannerUrl)}" alt="" width="600" style="display:block;width:100%;max-width:600px;height:auto;" /></td></tr>`
     : "";
+}
 
+/** Venue and start time as a two-column table, or "" when neither is known. */
+function detailsTable(event: EventRecord) {
+  const when = formatWhen(event);
   const detailRows: [string, string][] = [];
   if (event.venue) detailRows.push(["Venue", event.venue]);
   if (when) detailRows.push(["When", when]);
@@ -53,6 +55,15 @@ function buildHtml({ event, name, accessCode }: RegistrationEmailInput) {
     )
     .join("");
 
+  return details ? `<table cellpadding="0" cellspacing="0" width="100%">${details}</table>` : "";
+}
+
+/** The access code and joining link rows an event's access mode calls for. */
+function accessRows(event: EventRecord, accessCode: string) {
+  const mode = event.accessMode || "code";
+  const showCode = (mode === "code" || mode === "both") && Boolean(accessCode);
+  const showLink = (mode === "link" || mode === "both") && Boolean(event.joinUrl);
+
   const codeBlock = showCode
     ? `<tr><td style="padding:24px 32px;text-align:center;">
          <p style="margin:0 0 8px;color:#6b7280;font-size:12px;letter-spacing:1px;font-weight:600;">YOUR ACCESS CODE</p>
@@ -61,15 +72,22 @@ function buildHtml({ event, name, accessCode }: RegistrationEmailInput) {
        </td></tr>`
     : "";
 
-  const linkBlock =
-    showLink && event.joinUrl
-      ? `<tr><td style="padding:24px 32px;text-align:center;">
+  const linkBlock = showLink
+    ? `<tr><td style="padding:24px 32px;text-align:center;">
            <p style="margin:0 0 12px;color:#6b7280;font-size:12px;letter-spacing:1px;font-weight:600;">JOINING LINK</p>
-           <a href="${escapeHtml(event.joinUrl)}" style="display:inline-block;background-color:#27D2A9;color:#092358;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:15px;">Join the event</a>
-           <p style="margin:14px 0 0;word-break:break-all;"><a href="${escapeHtml(event.joinUrl)}" style="color:#092358;font-size:12px;">${escapeHtml(event.joinUrl)}</a></p>
+           <a href="${escapeHtml(event.joinUrl!)}" style="display:inline-block;background-color:#27D2A9;color:#092358;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:15px;">Join the event</a>
+           <p style="margin:14px 0 0;word-break:break-all;"><a href="${escapeHtml(event.joinUrl!)}" style="color:#092358;font-size:12px;">${escapeHtml(event.joinUrl!)}</a></p>
            ${event.joinInstructions ? `<p style="margin:14px 0 0;color:#4b5563;font-size:13px;">${escapeHtml(event.joinInstructions)}</p>` : ""}
          </td></tr>`
-      : "";
+    : "";
+
+  return { codeBlock, linkBlock };
+}
+
+function buildHtml({ event, name, accessCode }: RegistrationEmailInput) {
+  const banner = bannerRow(event);
+  const details = detailsTable(event);
+  const { codeBlock, linkBlock } = accessRows(event, accessCode);
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -87,7 +105,7 @@ function buildHtml({ event, name, accessCode }: RegistrationEmailInput) {
           <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
             Your registration is confirmed. The details are below — keep this email for your records.
           </p>
-          ${details ? `<table cellpadding="0" cellspacing="0" width="100%">${details}</table>` : ""}
+          ${details}
         </td></tr>
         ${codeBlock}
         ${linkBlock}
@@ -136,7 +154,7 @@ export interface SendResult {
  * prefix) and returns the provider's actual error text on failure so callers can
  * surface a real reason instead of a generic one. Never throws.
  */
-async function deliver(message: {
+export async function deliver(message: {
   to: string;
   name: string;
   subject: string;
@@ -195,6 +213,108 @@ export async function sendRegistrationEmail(input: RegistrationEmailInput): Prom
     htmlbody: buildHtml(input),
     textbody: buildText(input),
   });
+}
+
+export interface ReminderEmailInput {
+  event: EventRecord;
+  to: string;
+  name: string;
+  accessCode: string;
+  /** Human countdown for the real time remaining, e.g. "in 3 days". */
+  countdown: string;
+  /** Resolved start instant, used only to decide how urgent the wording is. */
+  startsAtMs: number;
+}
+
+/**
+ * Countdown reminder for an upcoming event. Repeats the access code or joining
+ * link so an attendee never has to hunt for the original confirmation, and leads
+ * with the time remaining rather than a fixed milestone name.
+ */
+export async function sendReminderEmail(input: ReminderEmailInput): Promise<SendResult> {
+  return deliver({
+    to: input.to,
+    name: input.name,
+    subject: `Reminder: ${input.event.name} starts ${input.countdown}`,
+    htmlbody: buildReminderHtml(input),
+    textbody: buildReminderText(input),
+  });
+}
+
+/** Wording that tightens as the event approaches. */
+function reminderIntro(event: EventRecord, remainingMs: number) {
+  const isVirtual = (event.accessMode || "code") === "link";
+  if (remainingMs <= 15 * 60_000) {
+    return isVirtual
+      ? "We are about to begin. Use the link below to join now."
+      : "We are about to begin. Head to the venue and have your access code ready.";
+  }
+  if (remainingMs <= 4 * 60 * 60_000) {
+    return isVirtual
+      ? "Your event starts shortly. Everything you need to join is below."
+      : "Your event starts shortly. Everything you need for check-in is below.";
+  }
+  return "This is a reminder that you are registered. The details are below.";
+}
+
+function buildReminderHtml(input: ReminderEmailInput) {
+  const { event, name, accessCode, countdown, startsAtMs } = input;
+  const banner = bannerRow(event);
+  const details = detailsTable(event);
+  const { codeBlock, linkBlock } = accessRows(event, accessCode);
+  const intro = reminderIntro(event, startsAtMs - Date.now());
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#E0FAF4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#E0FAF4;padding:24px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;overflow:hidden;max-width:600px;">
+        ${banner}
+        <tr><td style="background-color:#092358;padding:32px;text-align:center;">
+          <p style="margin:0;color:#27D2A9;font-size:12px;letter-spacing:2px;font-weight:700;">CFG AFRICA</p>
+          <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;">${escapeHtml(event.name)}</h1>
+          <p style="margin:14px 0 0;color:#27D2A9;font-size:16px;font-weight:700;">Starts ${escapeHtml(countdown)}</p>
+        </td></tr>
+        <tr><td style="padding:32px 32px 8px;">
+          <p style="margin:0 0 16px;color:#092358;font-size:16px;">Hello ${escapeHtml(name)},</p>
+          <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(intro)}</p>
+          ${details}
+        </td></tr>
+        ${codeBlock}
+        ${linkBlock}
+        <tr><td style="padding:24px 32px 32px;border-top:1px solid #e5e7eb;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">Can no longer make it? Let us know at <a href="mailto:events@cfgafrica.com" style="color:#092358;">events@cfgafrica.com</a></p>
+          <p style="margin:8px 0 0;color:#9ca3af;font-size:11px;">© 2026 CFG Africa</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function buildReminderText({ event, name, accessCode, countdown, startsAtMs }: ReminderEmailInput) {
+  const mode = event.accessMode || "code";
+  const when = formatWhen(event);
+  const lines = [
+    `${event.name} starts ${countdown}`,
+    "",
+    `Hello ${name},`,
+    "",
+    reminderIntro(event, startsAtMs - Date.now()),
+    "",
+  ];
+  if (event.venue) lines.push(`Venue: ${event.venue}`);
+  if (when) lines.push(`When: ${when}`);
+  if ((mode === "code" || mode === "both") && accessCode) {
+    lines.push("", `YOUR ACCESS CODE: ${accessCode}`, "Have this ready at check-in.");
+  }
+  if ((mode === "link" || mode === "both") && event.joinUrl) {
+    lines.push("", `JOINING LINK: ${event.joinUrl}`);
+    if (event.joinInstructions) lines.push(event.joinInstructions);
+  }
+  lines.push("", "Can no longer make it? Let us know at events@cfgafrica.com", "© 2026 CFG Africa");
+  return lines.join("\n");
 }
 
 /**

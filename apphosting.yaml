@@ -55,3 +55,7 @@ env:
     secret: ZEPTOMAIL_FROM_EMAIL
   - variable: ZEPTOMAIL_FROM_NAME
     secret: ZEPTOMAIL_FROM_NAME
+
+  # Shared secret Cloud Scheduler presents to /api/cron/reminders
+  - variable: CRON_SECRET
+    secret: CRON_SECRET

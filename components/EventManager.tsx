@@ -36,6 +36,7 @@ const blank = {
   accessMode: "code" as EventAccessMode,
   joinUrl: "",
   joinInstructions: "",
+  remindersEnabled: true,
   formTitle: "Registration form",
   introText: "",
   fields: starterFields,
@@ -141,6 +142,8 @@ export default function EventManager() {
       accessMode: (event.accessMode || "code") as EventAccessMode,
       joinUrl: event.joinUrl || "",
       joinInstructions: event.joinInstructions || "",
+      // Events created before reminders existed have no flag and are opted in.
+      remindersEnabled: event.remindersEnabled !== false,
       formTitle: event.form.title,
       introText: event.form.introText || "",
       fields: event.form.fields,
@@ -172,6 +175,7 @@ export default function EventManager() {
         accessMode: form.accessMode,
         joinUrl: form.joinUrl,
         joinInstructions: form.joinInstructions,
+        remindersEnabled: form.remindersEnabled,
         form: {
           title: form.formTitle,
           introText: form.introText,
@@ -425,6 +429,24 @@ export default function EventManager() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="rounded border p-3 md:col-span-2"
             />
+
+            <div className="md:col-span-2 rounded-lg border bg-gray-50 p-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.remindersEnabled}
+                  onChange={(e) => setForm({ ...form, remindersEnabled: e.target.checked })}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-medium text-gray-700">Send automatic reminder emails</span>
+                  <span className="mt-1 block text-xs text-gray-500">
+                    Registrants are emailed 3 days, 24 hours, 3 hours, 1 hour and 5 minutes before
+                    the start time. Reminders only go out once the event is published and dated.
+                  </span>
+                </span>
+              </label>
+            </div>
             <input
               required
               placeholder="Form title"

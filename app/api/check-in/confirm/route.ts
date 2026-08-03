@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/lib/admin';
+import { adminDb } from '@/lib/admin';
+import { requireAdmin, authError } from '@/lib/server-auth';
+import { sendGuestWelcomeEmail } from '@/lib/legacy-email';
 import type { Guest } from '@/types/guest';
 
 interface GuestWithId extends Guest {
@@ -8,23 +10,14 @@ interface GuestWithId extends Guest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Checking a guest in is a staff action and is attributed in the activity
+    // log, so the caller must be a known admin. This previously fell through to
+    // an anonymous "Staff" attribution, which let anyone check in any guest ID.
+    const actor = await requireAdmin(request);
+    const checkedInBy = actor.email;
+
     const body = await request.json();
     const { guestId } = body;
-
-    // Get current user from Authorization header (optional for check-in)
-    const authHeader = request.headers.get("authorization");
-    let checkedInBy = "Staff"; // Default if no auth
-
-    if (authHeader) {
-      try {
-        const token = authHeader.replace("Bearer ", "");
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        checkedInBy = decodedToken.email || "Staff";
-      } catch (error) {
-        // If token verification fails, use default "Staff"
-        console.log("Token verification failed, using default Staff");
-      }
-    }
 
     if (!guestId) {
       return NextResponse.json(
@@ -77,42 +70,17 @@ export async function POST(request: NextRequest) {
       timestamp: now.toISOString(),
     });
 
-    // Send welcome email
-    try {
-      console.log('Attempting to send welcome email...');
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const emailUrl = new URL('/api/send-welcome', baseUrl).toString();
-      console.log('Welcome email API URL:', emailUrl);
-      
-      const emailResponse = await fetch(emailUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guest: {
-            ...guestData,
-            id: guestDoc.id,
-            checkedIn: true,
-            checkedInAt: now.toISOString(),
-          },
-        }),
-      });
-      
-      console.log('Welcome email API response status:', emailResponse.status);
-      
-      if (!emailResponse.ok) {
-        const emailError = await emailResponse.json();
-        console.error('Welcome email API error response:', emailError);
-      } else {
-        console.log('Welcome email sent successfully');
-      }
-    } catch (emailError) {
-      console.error('Failed to send welcome email - exception:', emailError);
-      if (emailError instanceof Error) {
-        console.error('Email error message:', emailError.message);
-      }
-      // Don't fail the check-in if email fails
+    // Send welcome email. Called directly rather than over an internal HTTP hop,
+    // so there is no publicly reachable send endpoint and no dependency on
+    // NEXT_PUBLIC_APP_URL being set correctly. A failed send must not fail a
+    // check-in that has already been written, so the result is only logged.
+    const emailResult = await sendGuestWelcomeEmail({
+      ...guestData,
+      checkedIn: true,
+      checkedInAt: now.toISOString(),
+    });
+    if (!emailResult.sent) {
+      console.error('Welcome email not sent:', emailResult.reason);
     }
 
     // Return updated guest data
@@ -132,6 +100,9 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && (error.message === 'Unauthorized' || error.message === 'Forbidden')) {
+      return authError(error);
+    }
     console.error('Check-in error:', error);
     return NextResponse.json(
       { error: 'An error occurred during check-in. Please try again.' },

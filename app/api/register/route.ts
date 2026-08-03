@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/admin';
 import { registrationSchema } from '@/lib/validations/registration';
+import { sendGuestConfirmationEmail } from '@/lib/legacy-email';
 import { generateAccessCode } from '@/types/guest';
 import type { Guest, GuestFormData } from '@/types/guest';
 
@@ -89,42 +90,13 @@ export async function POST(request: NextRequest) {
       timestamp: now.toISOString(),
     });
 
-    // Send confirmation email
-    try {
-      console.log('Attempting to send confirmation email...');
-      // Use relative URL for internal server-to-server call
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const emailUrl = new URL('/api/send-confirmation', baseUrl).toString();
-      console.log('Email API URL:', emailUrl);
-      
-      const emailResponse = await fetch(emailUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          guest: {
-            ...guestData,
-            id: docRef.id,
-          },
-        }),
-      });
-      
-      console.log('Email API response status:', emailResponse.status);
-      
-      if (!emailResponse.ok) {
-        const emailError = await emailResponse.json();
-        console.error('Email API error response:', emailError);
-      } else {
-        console.log('Confirmation email sent successfully');
-      }
-    } catch (emailError) {
-      console.error('Failed to send confirmation email - exception:', emailError);
-      if (emailError instanceof Error) {
-        console.error('Email error message:', emailError.message);
-        console.error('Email error stack:', emailError.stack);
-      }
-      // Don't fail the registration if email fails
+    // Send confirmation email. Called directly rather than over an internal HTTP
+    // hop, so there is no publicly reachable send endpoint an outsider could POST
+    // an arbitrary recipient to. A failed send must not fail a registration that
+    // has already been written, so the result is only logged.
+    const emailResult = await sendGuestConfirmationEmail(guestData);
+    if (!emailResult.sent) {
+      console.error('Confirmation email not sent:', emailResult.reason);
     }
 
     return NextResponse.json(

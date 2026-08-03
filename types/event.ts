@@ -57,6 +57,11 @@ export interface EventRecord {
   joinUrl?: string;
   /** Extra joining notes shown with the link, e.g. a passcode or dial-in. */
   joinInstructions?: string;
+  /**
+   * Automatic countdown reminder emails. Undefined means enabled: events created
+   * before reminders existed still get them once they are published and dated.
+   */
+  remindersEnabled?: boolean;
   /** Populated by the admin events listing; absent on the public payload. */
   registrationCount?: number;
   /** Test submissions collected while the event was in testing. */

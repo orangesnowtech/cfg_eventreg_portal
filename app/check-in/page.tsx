@@ -1,8 +1,29 @@
+"use client";
+
 import CheckInForm from "@/components/CheckInForm";
+import AdminLogin from "@/components/AdminLogin";
+import { useAuth } from "@/lib/auth";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function CheckInPage() {
+  const { user, loading, signOut } = useAuth();
+
+  // Check-in exposes guest contact details and writes attendance, so the page is
+  // staff-only. The API routes behind it enforce this independently; this gate
+  // only keeps the UI from rendering for someone who could not use it anyway.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#E0FAF4' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#27D2A9' }}></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AdminLogin />;
+  }
+
   return (
     <div className="min-h-screen" style={{ background: '#E0FAF4' }}>
       {/* Header */}
@@ -18,13 +39,25 @@ export default function CheckInPage() {
             />
             
           </div>
-          <Link 
-            href="/"
-            className="text-sm font-medium transition-colors"
-            style={{ color: '#27D2A9' }}
-          >
-            ← Back to Registration
-          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-sm hidden sm:inline" style={{ color: '#092358' }}>
+              {user.email}
+            </span>
+            <Link
+              href="/"
+              className="text-sm font-medium transition-colors"
+              style={{ color: '#27D2A9' }}
+            >
+              ← Back to Registration
+            </Link>
+            <button
+              onClick={() => signOut()}
+              className="text-sm font-medium transition-colors hover:underline"
+              style={{ color: '#092358' }}
+            >
+              Sign out
+            </button>
+          </div>
         </div>
         {/* Signature Line */}
         <div className="cfg-signature-line"></div>

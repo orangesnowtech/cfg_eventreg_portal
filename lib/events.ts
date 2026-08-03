@@ -16,6 +16,60 @@ export async function getPublicEvents(): Promise<EventRecord[]> {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as EventRecord);
 }
 
+/** True when a datetime string already carries a zone, e.g. "...Z" or "...+01:00". */
+const HAS_ZONE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/** How far the given zone is ahead of UTC at that instant, in milliseconds. */
+function zoneOffsetMs(instantMs: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(instantMs));
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || "0");
+  // hour12:false renders midnight as "24" in some runtimes, hence the modulo.
+  const asIfUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  return asIfUtc - instantMs;
+}
+
+/**
+ * The event's start as a real instant.
+ *
+ * The builder stores what a datetime-local input produced ("2026-03-04T09:30"),
+ * which carries no zone, so it must be read in the event's own timezone rather
+ * than the server's — otherwise a Lagos event scheduled for 09:30 is treated as
+ * 09:30 UTC and everything timed off it lands an hour out. Strings that do carry
+ * a zone are trusted as-is. Returns null when there is nothing to time against.
+ */
+export function eventStartMs(event: EventRecord): number | null {
+  const raw = (event.startAt || "").trim();
+  if (!raw) return null;
+
+  if (HAS_ZONE.test(raw)) {
+    const parsed = new Date(raw).getTime();
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  const asUtc = Date.parse(`${raw}Z`);
+  if (Number.isNaN(asUtc)) return null;
+
+  const timeZone = event.timezone || "Africa/Lagos";
+  try {
+    // Two passes so a start that sits just across a DST change resolves correctly.
+    const firstPass = asUtc - zoneOffsetMs(asUtc, timeZone);
+    return asUtc - zoneOffsetMs(firstPass, timeZone);
+  } catch {
+    // Unknown timezone identifier: fall back to reading the value as UTC.
+    return asUtc;
+  }
+}
+
 /**
  * An event with no end time is treated as running until the end of its start day,
  * so a single-day event does not flip to "past" the moment it begins.

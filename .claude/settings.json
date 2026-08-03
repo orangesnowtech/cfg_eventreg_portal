@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase apphosting:secrets:describe ZEPTOMAIL_API_KEY --project cfg-event-regportal)",
+      "Bash(node -e \"const {execSync}=require\\('child_process'\\);const v=execSync\\('firebase apphosting:secrets:access ZEPTOMAIL_API_KEY --project cfg-event-regportal',{encoding:'utf8'}\\);console.log\\('stored length:',v.trim\\(\\).length,'| starts:',v.slice\\(0,6\\),'| ends:',JSON.stringify\\(v.trim\\(\\).slice\\(-6\\)\\)\\);\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const r=JSON.parse\\(d\\);r.filter\\(f=>f.errorCount>0\\).forEach\\(f=>console.log\\(f.errorCount,'errors:',f.filePath.split\\(/[\\\\\\\\\\\\\\\\/]/\\).slice\\(-2\\).join\\('/'\\)\\)\\);}\\);\")",
+      "Bash(gh repo *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://api.github.com/repos/orangesnowtech/cfg_eventreg_portal)",
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(node \"C:/Users/HP/AppData/Local/Temp/claude/c--Users-HP-projects-CFG-event-reg-portal/dbe362e5-7fd5-480a-905d-80b21d774960/scratchpad/keyid.js\")",
+      "Bash(node \"C:/Users/HP/AppData/Local/Temp/claude/c--Users-HP-projects-CFG-event-reg-portal/dbe362e5-7fd5-480a-905d-80b21d774960/scratchpad/pubfp.js\")",
+      "Bash(gcloud iam *)",
+      "Bash(curl -s -m 25 -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://events.cfgafrica.com/)",
+      "Bash(curl -s -m 25 -w \"\\\\nHTTP %{http_code}\\\\n\" \"https://events.cfgafrica.com/api/events?public=true\")",
+      "Bash(curl -s -m 25 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://events.cfgafrica.com/api/events?public=true\")",
+      "Bash(curl -s -m 25 -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://events.cfgafrica.com/events/cfg-next-gen-campus\")",
+      "Bash(grep -nE \"gcloud secrets create|^\\\\\\\\\\\\$|^param|function|Write-Host \\\\\"Creating\" setup-secrets.ps1)",
+      "PowerShell($errors = $null; $null = [System.Management.Automation.Language.Parser]::ParseFile\\(\"c:\\\\Users\\\\HP\\\\projects\\\\CFG\\\\event-reg-portal\\\\setup-secrets.ps1\", [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { \"setup-secrets.ps1: syntax OK\" } else { $errors | ForEach-Object { $_.Message } })"
+    ]
+  }
+}
