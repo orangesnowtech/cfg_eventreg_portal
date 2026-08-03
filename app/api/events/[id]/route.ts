@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin";
 import { requireAdmin, authError } from "@/lib/server-auth";
-import { validateEventForm, validateEventAccess } from "@/lib/validations/event-form";
+import { validateEventForm, validateEventAccess, cleanUrl } from "@/lib/validations/event-form";
 import type { EventField } from "@/types/event";
 
 /**
@@ -45,7 +45,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const update: Record<string, unknown> = { updatedAt: new Date().toISOString(), ...(body.status === "published" ? { publishedAt: new Date().toISOString() } : {}) };
-    for (const key of editable) if (body[key] !== undefined) update[key] = body[key];
+    // Edits arrive as raw values, so URL fields are cleaned here as well as on create.
+    const urlFields = new Set<string>(["bannerUrl", "joinUrl"]);
+    for (const key of editable) if (body[key] !== undefined) update[key] = urlFields.has(key) ? cleanUrl(body[key]) : body[key];
 
     // The homepage shows a single featured event, so featuring one clears the rest.
     if (body.featured === true) {

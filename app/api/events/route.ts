@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin";
 import { requireAdmin, authError } from "@/lib/server-auth";
 import type { EventField, EventStatus } from "@/types/event";
-import { validateEventForm, validateEventAccess } from "@/lib/validations/event-form";
+import { validateEventForm, validateEventAccess, cleanUrl } from "@/lib/validations/event-form";
 
 function slugify(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const duplicate = await adminDb.collection("events").where("slug", "==", slug).limit(1).get();
     if (!duplicate.empty) return NextResponse.json({ error: "That event slug is already in use." }, { status: 409 });
     const now = new Date().toISOString();
-    const ref = await adminDb.collection("events").add({ name: String(body.name).trim().slice(0, 160), slug, description: String(body.description || "").slice(0, 2000), venue: String(body.venue || "").slice(0, 300), bannerUrl: String(body.bannerUrl || "").slice(0, 500), accessMode: body.accessMode || "code", joinUrl: String(body.joinUrl || "").slice(0, 500), joinInstructions: String(body.joinInstructions || "").slice(0, 1000), startAt: body.startAt || null, endAt: body.endAt || null, timezone: body.timezone || "Africa/Lagos", remindersEnabled: body.remindersEnabled !== false, status: "draft" as EventStatus, form: { title: String(body.form.title).slice(0, 160), introText: String(body.form.introText || "").slice(0, 1000), successMessage: String(body.form.successMessage || "Registration received.").slice(0, 500), fields }, createdAt: now, updatedAt: now, createdBy: actor.uid });
+    const ref = await adminDb.collection("events").add({ name: String(body.name).trim().slice(0, 160), slug, description: String(body.description || "").slice(0, 2000), venue: String(body.venue || "").slice(0, 300), bannerUrl: cleanUrl(body.bannerUrl), accessMode: body.accessMode || "code", joinUrl: cleanUrl(body.joinUrl), joinInstructions: String(body.joinInstructions || "").slice(0, 1000), startAt: body.startAt || null, endAt: body.endAt || null, timezone: body.timezone || "Africa/Lagos", remindersEnabled: body.remindersEnabled !== false, status: "draft" as EventStatus, form: { title: String(body.form.title).slice(0, 160), introText: String(body.form.introText || "").slice(0, 1000), successMessage: String(body.form.successMessage || "Registration received.").slice(0, 500), fields }, createdAt: now, updatedAt: now, createdBy: actor.uid });
     return NextResponse.json({ event: { id: ref.id, slug } }, { status: 201 });
   } catch (error) { return authError(error); }
 }

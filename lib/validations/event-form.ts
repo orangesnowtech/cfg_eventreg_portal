@@ -16,6 +16,17 @@ export function buildEventFormSchema(fields: EventField[]) {
 }
 
 /**
+ * URLs pasted from a browser, chat client or spreadsheet can carry stray newlines
+ * or spaces. The URL parser tolerates them, so validation passes and the value is
+ * stored intact — but HTML escaping preserves the break, and the resulting <img>
+ * or <a> in every email template renders broken for some mail clients. Whitespace
+ * is never meaningful inside a URL, so strip it before the value is persisted.
+ */
+export function cleanUrl(value: unknown, maxLength = 500): string {
+  return String(value ?? "").replace(/\s+/g, "").slice(0, maxLength);
+}
+
+/**
  * Shared create/edit validation for how attendees are admitted. Returns an error
  * message for the admin, or null when the settings are coherent.
  */
