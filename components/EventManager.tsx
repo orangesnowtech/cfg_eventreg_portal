@@ -20,6 +20,14 @@ const FIELD_TYPES: EventFieldType[] = [
 // The register API derives the attendee name and email from these keys, so they stay fixed.
 const LOCKED_FIELD_COUNT = 3;
 
+/**
+ * Where a record's form actually lives. Programmes share this dashboard but are
+ * served by /programmes/[slug]; sending them to /events/[slug] is a 404.
+ */
+function publicPath(record: Pick<EventRecord, "kind" | "slug">) {
+  return record.kind === "programme" ? `/programmes/${record.slug}` : `/events/${record.slug}`;
+}
+
 const starterFields: EventField[] = [
   { id: "firstName", label: "First name", type: "text", required: true },
   { id: "lastName", label: "Last name", type: "text", required: true },
@@ -36,6 +44,7 @@ const blank = {
   accessMode: "code" as EventAccessMode,
   joinUrl: "",
   joinInstructions: "",
+  emailFromName: "",
   remindersEnabled: true,
   formTitle: "Registration form",
   introText: "",
@@ -45,6 +54,9 @@ const blank = {
 function formatAnswer(raw: unknown): string {
   if (raw === undefined || raw === null || raw === "") return "—";
   if (typeof raw === "boolean") return raw ? "Yes" : "No";
+  // Multi-select answers (programme checkbox groups) arrive as arrays; the default
+  // stringification would run them together with bare commas.
+  if (Array.isArray(raw)) return raw.length ? raw.join("; ") : "—";
   return String(raw);
 }
 
@@ -75,6 +87,10 @@ export default function EventManager() {
   const [broadcastBusy, setBroadcastBusy] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState("");
   const [error, setError] = useState("");
+
+  // Programmes appear in this dashboard but their form is defined in code, so the
+  // builder is read-only for them and the API rejects any PATCH carrying fields.
+  const editingProgramme = events.find((e) => e.id === editingId)?.kind === "programme";
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -142,6 +158,7 @@ export default function EventManager() {
       accessMode: (event.accessMode || "code") as EventAccessMode,
       joinUrl: event.joinUrl || "",
       joinInstructions: event.joinInstructions || "",
+      emailFromName: event.emailFromName || "",
       // Events created before reminders existed have no flag and are opted in.
       remindersEnabled: event.remindersEnabled !== false,
       formTitle: event.form.title,
@@ -175,12 +192,17 @@ export default function EventManager() {
         accessMode: form.accessMode,
         joinUrl: form.joinUrl,
         joinInstructions: form.joinInstructions,
+        emailFromName: form.emailFromName,
         remindersEnabled: form.remindersEnabled,
-        form: {
-          title: form.formTitle,
-          introText: form.introText,
-          fields: form.fields,
-        },
+        ...(editingProgramme
+          ? {}
+          : {
+              form: {
+                title: form.formTitle,
+                introText: form.introText,
+                fields: form.fields,
+              },
+            }),
         ...(editingId ? {} : { slug: form.slug }),
       };
       const response = await fetch(
@@ -334,8 +356,10 @@ export default function EventManager() {
 
   function exportAttendees() {
     if (!selected || attendees.length === 0) return;
+    // Arrays are joined rather than stringified so a multi-select answer reads as
+    // one cell instead of a comma run that looks like extra columns.
     const escape = (value: unknown) =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
+      `"${(Array.isArray(value) ? value.join("; ") : String(value ?? "")).replace(/"/g, '""')}"`;
     const header = [
       ...selected.form.fields.map((field) => field.label),
       "Access code",
@@ -401,7 +425,9 @@ export default function EventManager() {
             />
             {editingId ? (
               <p className="rounded border border-dashed bg-gray-50 p-3 text-sm text-gray-500">
-                Registration link: /events/{form.slug} (cannot be changed)
+                {editingProgramme ? "Application link" : "Registration link"}:{" "}
+                {editingProgramme ? "/programmes/" : "/events/"}
+                {form.slug} (cannot be changed)
               </p>
             ) : (
               <input
@@ -429,6 +455,21 @@ export default function EventManager() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="rounded border p-3 md:col-span-2"
             />
+
+            <div className="md:col-span-2">
+              <input
+                type="text"
+                placeholder="Email sender name (optional)"
+                value={form.emailFromName}
+                onChange={(e) => setForm({ ...form, emailFromName: e.target.value })}
+                maxLength={78}
+                className="w-full rounded border p-3"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Shown as the sender on every email for this event. Leave blank to use the default,
+                &ldquo;CFG Africa Events&rdquo;. The sending address never changes.
+              </p>
+            </div>
 
             <div className="md:col-span-2 rounded-lg border bg-gray-50 p-4">
               <label className="flex items-start gap-3 text-sm">
@@ -560,7 +601,15 @@ export default function EventManager() {
                 </button>
               )}
             </div>
-            {fieldsLocked && (
+            {editingProgramme && (
+              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                This programme&rsquo;s form is defined in code, not here. Anything
+                you change in the fields below is ignored on save — edit
+                lib/programmes and re-run the seed script instead. The name,
+                description and email sender name above do still save.
+              </p>
+            )}
+            {fieldsLocked && !editingProgramme && (
               <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
                 This event already has registrations, so the form fields are
                 locked — changing them would invalidate answers that have
@@ -678,7 +727,7 @@ export default function EventManager() {
                 <h3 className="text-xl font-bold text-cfg-primary">
                   {event.name}
                 </h3>
-                <p className="text-sm text-gray-500">/events/{event.slug}</p>
+                <p className="text-sm text-gray-500">{publicPath(event)}</p>
               </div>
               <span
                 className={`h-fit rounded-full px-3 py-1 text-xs font-semibold ${
@@ -765,7 +814,7 @@ export default function EventManager() {
               </button>
               {(event.status === "published" || event.status === "testing") && (
                 <a
-                  href={`/events/${event.slug}`}
+                  href={publicPath(event)}
                   target="_blank"
                   className="rounded border px-3 py-2 text-sm font-semibold"
                 >

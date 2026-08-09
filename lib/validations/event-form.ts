@@ -27,6 +27,17 @@ export function cleanUrl(value: unknown, maxLength = 500): string {
 }
 
 /**
+ * Sender display name for a record's emails. Line breaks and the quotes and angle
+ * brackets that delimit an address are stripped rather than escaped: they have no
+ * legitimate use in a display name, and letting them through would let an admin's
+ * typo mangle the From header. 78 characters is the RFC 5322 line-length guidance.
+ * Returns "" for an empty value, which callers treat as "use the default".
+ */
+export function cleanSenderName(value: unknown, maxLength = 78): string {
+  return String(value ?? "").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+/**
  * Shared create/edit validation for how attendees are admitted. Returns an error
  * message for the admin, or null when the settings are coherent.
  */

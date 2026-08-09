@@ -1,0 +1,58 @@
+{
+  "kind": "programme",
+  "slug": "cu-campus-ambassador",
+  "name": "CFG Africa Campus Ambassador Programme — Covenant University",
+  "description": "Covenant University intake. Represent CFG Africa on campus, build a professional record, and take the training before the cohort starts.",
+  "emailFromName": "CFG Africa Campus Ambassador",
+  "form": {
+    "title": "Campus Ambassador Application",
+    "introText": "Covenant University intake, open to 200 – 500 level students with a CGPA of 2.20 or above.",
+    "successMessage": "Application received.",
+    "fields": [
+      { "id": "name", "label": "Full name", "type": "text", "required": true },
+      { "id": "phone", "label": "Phone / WhatsApp", "type": "phone", "required": true },
+      { "id": "email", "label": "Institutional email", "type": "email", "required": true },
+      {
+        "id": "level",
+        "label": "Level of study",
+        "type": "radio",
+        "required": true,
+        "options": ["100 Level", "200 Level", "300 Level", "400 Level", "500 Level"]
+      },
+      { "id": "dept", "label": "Department & college", "type": "text", "required": true },
+      {
+        "id": "cgpa",
+        "label": "CGPA",
+        "type": "radio",
+        "required": true,
+        "options": ["Below 2.20", "2.20 – 2.99", "3.00 – 3.49", "3.50 – 4.49", "4.50 – 5.00"]
+      },
+      { "id": "about", "label": "About you", "type": "textarea", "required": true },
+      { "id": "why", "label": "Why you're applying", "type": "textarea", "required": true },
+      {
+        "id": "exp",
+        "label": "Leadership experience",
+        "type": "checkbox-group",
+        "required": true,
+        "options": [
+          "Departmental / College Association Executive",
+          "Fellowship / Campus Unit Leader",
+          "Student Entrepreneur / Business Owner",
+          "Event Host / Content Creator / Marketer",
+          "None of the above — eager to build experience"
+        ]
+      },
+      {
+        "id": "commit",
+        "label": "Commitments confirmed",
+        "type": "checkbox-group",
+        "required": true,
+        "options": [
+          "3-day virtual ambassador training",
+          "Peer recruitment (Task 1) and campus engagement",
+          "Represent CFG Africa professionally on campus"
+        ]
+      }
+    ]
+  }
+}

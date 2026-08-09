@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin";
 import { requireAdmin, authError } from "@/lib/server-auth";
-import { validateEventForm, validateEventAccess, cleanUrl } from "@/lib/validations/event-form";
+import { validateEventForm, validateEventAccess, cleanUrl, cleanSenderName } from "@/lib/validations/event-form";
 import type { EventField } from "@/types/event";
 
 /**
@@ -34,7 +34,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const doc = await adminDb.collection("events").doc(id).get();
     if (!doc.exists) return NextResponse.json({ error: "Event not found." }, { status: 404 });
 
-    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "remindersEnabled"] as const;
+    // A programme's form is hardcoded in the app, and its field definitions here
+    // exist only so the dashboard and CSV export can read the answers. Editing
+    // them through the builder would silently desynchronise the two, and a
+    // programme has no homepage feature slot to claim.
+    if (doc.data()?.kind === "programme") {
+      if (body.form !== undefined) return NextResponse.json({ error: "This programme's form is defined in code, so it cannot be edited here. Change it in lib/programmes and re-run the seed script." }, { status: 409 });
+      if (body.featured !== undefined) return NextResponse.json({ error: "Programmes are not shown on the homepage feature slot." }, { status: 400 });
+    }
+
+    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "emailFromName", "remindersEnabled"] as const;
 
     if (body.accessMode !== undefined || body.joinUrl !== undefined) {
       const accessError = validateEventAccess(
@@ -47,7 +56,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const update: Record<string, unknown> = { updatedAt: new Date().toISOString(), ...(body.status === "published" ? { publishedAt: new Date().toISOString() } : {}) };
     // Edits arrive as raw values, so URL fields are cleaned here as well as on create.
     const urlFields = new Set<string>(["bannerUrl", "joinUrl"]);
-    for (const key of editable) if (body[key] !== undefined) update[key] = urlFields.has(key) ? cleanUrl(body[key]) : body[key];
+    for (const key of editable) {
+      if (body[key] === undefined) continue;
+      if (urlFields.has(key)) update[key] = cleanUrl(body[key]);
+      else if (key === "emailFromName") update[key] = cleanSenderName(body[key]);
+      else update[key] = body[key];
+    }
 
     // The homepage shows a single featured event, so featuring one clears the rest.
     if (body.featured === true) {

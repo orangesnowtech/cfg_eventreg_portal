@@ -160,6 +160,8 @@ export async function deliver(message: {
   subject: string;
   htmlbody: string;
   textbody: string;
+  /** Overrides the sender name for this send only; blank or absent uses the default. */
+  fromName?: string;
 }): Promise<SendResult> {
   const rawKey = process.env.ZEPTOMAIL_API_KEY;
   if (!rawKey) return { sent: false, reason: "ZEPTOMAIL_API_KEY is not set in this environment" };
@@ -167,7 +169,7 @@ export async function deliver(message: {
 
   const token = rawKey.startsWith("Zoho-enczapikey") ? rawKey : `Zoho-enczapikey ${rawKey}`;
   const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "noreply@cfgafrica.com";
-  const fromName = process.env.ZEPTOMAIL_FROM_NAME || "CFG Africa Events";
+  const fromName = message.fromName?.trim() || process.env.ZEPTOMAIL_FROM_NAME || "CFG Africa Events";
 
   try {
     const response = await fetch(ZEPTOMAIL_URL, {
@@ -212,6 +214,87 @@ export async function sendRegistrationEmail(input: RegistrationEmailInput): Prom
     subject,
     htmlbody: buildHtml(input),
     textbody: buildText(input),
+    fromName: input.event.emailFromName,
+  });
+}
+
+export interface ApplicationEmailInput {
+  /** The programme record the application was submitted against. */
+  programme: EventRecord;
+  to: string;
+  name: string;
+  /** Quoted back if the applicant needs to ask about their submission. */
+  reference: string;
+  isTest?: boolean;
+}
+
+/**
+ * Confirmation for a programme application.
+ *
+ * Deliberately not the registration template: there is no venue, no start time
+ * and nothing to check into, so the applicant gets a reference number and a plain
+ * statement of what happens next instead of an access code they cannot use.
+ */
+export async function sendApplicationEmail(input: ApplicationEmailInput): Promise<SendResult> {
+  const { programme, name, reference, isTest } = input;
+  const nextSteps =
+    "We review every application after the intake closes. Shortlisted applicants are contacted on the WhatsApp number they provided, with the training dates.";
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background-color:#E0FAF4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#E0FAF4;padding:24px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;overflow:hidden;max-width:600px;">
+        ${bannerRow(programme)}
+        <tr><td style="background-color:#092358;padding:32px;text-align:center;">
+          <p style="margin:0;color:#27D2A9;font-size:12px;letter-spacing:2px;font-weight:700;">CFG AFRICA</p>
+          <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;">${escapeHtml(programme.name)}</h1>
+        </td></tr>
+        <tr><td style="padding:32px 32px 8px;">
+          <p style="margin:0 0 16px;color:#092358;font-size:16px;">Hello ${escapeHtml(name)},</p>
+          <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
+            We have received your application. Nothing further is needed from you right now.
+          </p>
+          <p style="margin:0 0 8px;color:#4b5563;font-size:15px;line-height:1.6;">${nextSteps}</p>
+        </td></tr>
+        <tr><td style="padding:24px 32px;text-align:center;">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:12px;letter-spacing:1px;font-weight:600;">YOUR APPLICATION REFERENCE</p>
+          <p style="margin:0;color:#092358;font-size:30px;font-weight:700;letter-spacing:4px;font-family:monospace;">${escapeHtml(reference)}</p>
+          <p style="margin:12px 0 0;color:#6b7280;font-size:13px;">Quote this if you need to ask us about your application.</p>
+        </td></tr>
+        <tr><td style="padding:24px 32px 32px;border-top:1px solid #e5e7eb;text-align:center;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">Questions? Contact <a href="mailto:events@cfgafrica.com" style="color:#092358;">events@cfgafrica.com</a></p>
+          <p style="margin:8px 0 0;color:#9ca3af;font-size:11px;">© 2026 CFG Africa</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const text = [
+    programme.name,
+    "",
+    `Hello ${name},`,
+    "",
+    "We have received your application. Nothing further is needed from you right now.",
+    "",
+    nextSteps,
+    "",
+    `YOUR APPLICATION REFERENCE: ${reference}`,
+    "Quote this if you need to ask us about your application.",
+    "",
+    "Questions? Contact events@cfgafrica.com",
+    "© 2026 CFG Africa",
+  ].join("\n");
+
+  return deliver({
+    to: input.to,
+    name,
+    subject: `${isTest ? "[TEST] " : ""}Application received — ${programme.name}`,
+    htmlbody: html,
+    textbody: text,
+    fromName: programme.emailFromName,
   });
 }
 
@@ -238,6 +321,7 @@ export async function sendReminderEmail(input: ReminderEmailInput): Promise<Send
     subject: `Reminder: ${input.event.name} starts ${input.countdown}`,
     htmlbody: buildReminderHtml(input),
     textbody: buildReminderText(input),
+    fromName: input.event.emailFromName,
   });
 }
 
@@ -334,6 +418,7 @@ export async function sendBroadcastEmail(input: {
     subject: input.subject,
     htmlbody: buildBroadcastHtml(input.event, input.name, input.message),
     textbody: `${input.message}\n\n—\n${input.event.name}\nCFG Africa`,
+    fromName: input.event.emailFromName,
   });
 }
 

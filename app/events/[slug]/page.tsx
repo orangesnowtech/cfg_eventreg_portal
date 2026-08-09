@@ -16,6 +16,9 @@ async function getEvent(slug: string): Promise<EventRecord | null> {
     .get();
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
+  // A programme shares this collection but has its own hardcoded page under
+  // /programmes/[slug]; the generic event renderer cannot draw its form.
+  if (doc.data().kind === "programme") return null;
   return { id: doc.id, ...doc.data() } as EventRecord;
 }
 

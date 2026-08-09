@@ -140,6 +140,9 @@ export async function runReminderSweep(now: number = Date.now()): Promise<Remind
 
   for (const doc of snapshot.docs) {
     const event = { id: doc.id, ...doc.data() } as EventRecord;
+    // Programmes have nothing to count down to and no access code to repeat, so
+    // the reminder template does not apply to them even if one carries a date.
+    if (event.kind === "programme") continue;
     if (event.remindersEnabled === false) continue;
 
     const startMs = eventStartMs(event);

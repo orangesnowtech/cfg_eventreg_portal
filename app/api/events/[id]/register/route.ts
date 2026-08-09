@@ -10,6 +10,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params; const eventDoc = await adminDb.collection("events").doc(id).get();
     const status = eventDoc.data()?.status;
     if (!eventDoc.exists || (status !== "published" && status !== "testing")) return NextResponse.json({ error: "This event is not accepting registrations." }, { status: 404 });
+    // Programmes share this collection but not this endpoint: their rules (institutional
+    // email, word limits, disqualifying answers) live in the programme schema, and the
+    // generic form validator would wave all of them through and issue an access code.
+    if (eventDoc.data()?.kind === "programme") return NextResponse.json({ error: "This event is not accepting registrations." }, { status: 404 });
     const isTest = status === "testing";
     const event = eventDoc.data()!; const result = buildEventFormSchema(event.form.fields).safeParse(await request.json());
     if (!result.success) return NextResponse.json({ error: "Please correct the form errors.", details: result.error.issues }, { status: 400 });

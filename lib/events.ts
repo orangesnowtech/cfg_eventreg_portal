@@ -6,6 +6,11 @@ export type EventPhase = "past" | "present" | "upcoming";
 /**
  * Events that are visible publicly: open ones plus closed ones, which stay
  * listed so the archive of past events is complete. Drafts never appear.
+ *
+ * Programmes share this collection but are not events — they have no date to
+ * attend and no place in an events archive — so they are filtered out here,
+ * which keeps them off both the /events listing and the homepage feature slot.
+ * They are reached only by their own /programmes/[slug] link.
  */
 export async function getPublicEvents(): Promise<EventRecord[]> {
   const snapshot = await adminDb
@@ -13,7 +18,9 @@ export async function getPublicEvents(): Promise<EventRecord[]> {
     .where("status", "in", ["published", "closed"])
     .orderBy("createdAt", "desc")
     .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as EventRecord);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }) as EventRecord)
+    .filter((record) => record.kind !== "programme");
 }
 
 /** True when a datetime string already carries a zone, e.g. "...Z" or "...+01:00". */
