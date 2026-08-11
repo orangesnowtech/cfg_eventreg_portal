@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { IBM_Plex_Mono, Newsreader, Public_Sans } from "next/font/google";
 import CampusAmbassadorForm from "@/components/CampusAmbassadorForm";
+import ProgrammeClosed from "@/components/ProgrammeClosed";
 import { adminDb } from "@/lib/admin";
 import { CAMPUS_AMBASSADOR_SLUG } from "@/lib/programmes/campus-ambassador";
 import type { EventRecord } from "@/types/event";
@@ -24,6 +25,10 @@ const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], var
  * `kind`. Fetched by slug alone — a single-field query needs no composite index —
  * then filtered in code. Programmes in testing are reachable by direct link, the
  * same way events in testing are.
+ *
+ * Closed programmes are served as well, so that an application link already out
+ * in the world explains that the intake has ended instead of 404ing. Drafts stay
+ * hidden: nothing has been shared for them yet.
  */
 async function getProgramme(slug: string): Promise<EventRecord | null> {
   const snapshot = await adminDb.collection("events").where("slug", "==", slug).limit(1).get();
@@ -32,7 +37,7 @@ async function getProgramme(slug: string): Promise<EventRecord | null> {
 
   const data = doc.data();
   if (data.kind !== "programme") return null;
-  if (data.status !== "published" && data.status !== "testing") return null;
+  if (!["published", "testing", "closed"].includes(data.status)) return null;
 
   return { id: doc.id, ...data } as EventRecord;
 }
@@ -40,6 +45,12 @@ async function getProgramme(slug: string): Promise<EventRecord | null> {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const programme = await getProgramme((await params).slug);
   if (!programme) return { title: "Programme not found — CFG Africa" };
+  if (programme.status === "closed") {
+    return {
+      title: `${programme.name} — applications closed — CFG Africa`,
+      description: "This intake is no longer accepting applications.",
+    };
+  }
   return {
     title: `${programme.name} — CFG Africa`,
     description: programme.description || "Apply to the CFG Africa Campus Ambassador Programme.",
@@ -54,7 +65,11 @@ export default async function ProgrammePage({ params }: { params: Promise<{ slug
 
   return (
     <div className={`${publicSans.variable} ${newsreader.variable} ${plexMono.variable}`}>
-      <CampusAmbassadorForm programme={programme} />
+      {programme.status === "closed" ? (
+        <ProgrammeClosed programme={programme} />
+      ) : (
+        <CampusAmbassadorForm programme={programme} />
+      )}
     </div>
   );
 }

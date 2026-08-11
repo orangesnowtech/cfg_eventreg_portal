@@ -603,6 +603,21 @@
   border: 0;
 }
 
+/* ---------- closed intake ---------- */
+/*
+ * components/ProgrammeClosed reuses the receipt panel, but its action is a link
+ * rather than a submit button, and its stamp reports a closure — the receipt's
+ * green would read as a success.
+ */
+.ca a.btn {
+  display: inline-block;
+  text-decoration: none;
+}
+.ca .receipt .stamp.closed {
+  color: var(--flag);
+  border-color: rgba(155, 58, 44, 0.4);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ca *,
   .ca *::before,

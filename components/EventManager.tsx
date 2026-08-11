@@ -28,6 +28,14 @@ function publicPath(record: Pick<EventRecord, "kind" | "slug">) {
   return record.kind === "programme" ? `/programmes/${record.slug}` : `/events/${record.slug}`;
 }
 
+/**
+ * Programmes collect applications, events collect registrations. The buttons act
+ * on the same status field either way; only the wording changes.
+ */
+function intakeNoun(record: Pick<EventRecord, "kind">) {
+  return record.kind === "programme" ? "applications" : "registration";
+}
+
 const starterFields: EventField[] = [
   { id: "firstName", label: "First name", type: "text", required: true },
   { id: "lastName", label: "Last name", type: "text", required: true },
@@ -247,6 +255,32 @@ export default function EventManager() {
       ? `Publish "${event.name}"?\n\nThis deletes ${tests} test submission(s) and starts collecting real registrations. The form fields lock once the first real person registers.`
       : `Publish "${event.name}"?\n\nThe form fields lock once the first real person registers.`;
     if (!confirm(warning)) return;
+    await changeStatus(event, "published");
+  }
+
+  /**
+   * Stops new submissions while leaving the record published: an event stays in
+   * the public archive, and everything already collected is untouched.
+   */
+  async function closeEvent(event: EventRecord) {
+    const noun = intakeNoun(event);
+    if (
+      !confirm(
+        `Close ${noun} for "${event.name}"?\n\nThe form stops accepting new submissions and its link no longer opens. Everything already collected is kept, and you can reopen it at any time.`
+      )
+    )
+      return;
+    await changeStatus(event, "closed");
+  }
+
+  async function reopenEvent(event: EventRecord) {
+    const noun = intakeNoun(event);
+    if (
+      !confirm(
+        `Reopen ${noun} for "${event.name}"?\n\nThe form goes live again at ${publicPath(event)} and starts accepting new submissions.`
+      )
+    )
+      return;
     await changeStatus(event, "published");
   }
 
@@ -735,15 +769,18 @@ export default function EventManager() {
                     ? "bg-amber-100 text-amber-900"
                     : event.status === "published"
                       ? "bg-green-100 text-green-800"
-                      : "bg-gray-100"
+                      : event.status === "closed"
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-gray-100"
                 }`}
               >
-                {event.status}
+                {event.status === "published" ? "open" : event.status}
               </span>
             </div>
             <p className="mt-3 text-sm text-gray-600">
               {event.form.fields.length} form fields ·{" "}
-              {event.registrationCount || 0} registered
+              {event.registrationCount || 0}{" "}
+              {event.kind === "programme" ? "applied" : "registered"}
               {event.testCount ? ` · ${event.testCount} test` : ""}
               {event.venue && ` · ${event.venue}`}
             </p>
@@ -774,10 +811,18 @@ export default function EventManager() {
               )}
               {event.status === "published" && (
                 <button
-                  onClick={() => changeStatus(event, "closed")}
+                  onClick={() => closeEvent(event)}
                   className="rounded bg-orange-500 px-3 py-2 text-sm font-semibold text-white"
                 >
-                  Close registration
+                  Close {intakeNoun(event)}
+                </button>
+              )}
+              {event.status === "closed" && (
+                <button
+                  onClick={() => reopenEvent(event)}
+                  className="rounded bg-green-600 px-3 py-2 text-sm font-semibold text-white"
+                >
+                  Reopen {intakeNoun(event)}
                 </button>
               )}
               {(event.status === "published" || event.status === "closed") && (
@@ -788,7 +833,7 @@ export default function EventManager() {
                   Unpublish
                 </button>
               )}
-              {event.status === "published" && (
+              {event.status === "published" && event.kind !== "programme" && (
                 <button
                   onClick={() => toggleFeatured(event)}
                   className={`rounded px-3 py-2 text-sm font-semibold ${
@@ -810,15 +855,19 @@ export default function EventManager() {
                 onClick={() => viewAttendees(event)}
                 className="rounded border px-3 py-2 text-sm font-semibold"
               >
-                View attendees
+                {event.kind === "programme" ? "View applicants" : "View attendees"}
               </button>
-              {(event.status === "published" || event.status === "testing") && (
+              {event.status !== "draft" && (
                 <a
                   href={publicPath(event)}
                   target="_blank"
                   className="rounded border px-3 py-2 text-sm font-semibold"
                 >
-                  {event.status === "testing" ? "Open test form" : "Open form"}
+                  {event.status === "testing"
+                    ? "Open test form"
+                    : event.status === "closed"
+                      ? "Open closed page"
+                      : "Open form"}
                 </a>
               )}
             </div>

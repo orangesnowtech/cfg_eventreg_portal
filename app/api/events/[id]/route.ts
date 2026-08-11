@@ -53,7 +53,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (accessError) return NextResponse.json({ error: accessError }, { status: 400 });
     }
 
-    const update: Record<string, unknown> = { updatedAt: new Date().toISOString(), ...(body.status === "published" ? { publishedAt: new Date().toISOString() } : {}) };
+    // publishedAt records when this first went live, so reopening a closed record
+    // — which is also a move to "published" — must not overwrite it.
+    const update: Record<string, unknown> = { updatedAt: new Date().toISOString(), ...(body.status === "published" && !doc.data()?.publishedAt ? { publishedAt: new Date().toISOString() } : {}) };
     // Edits arrive as raw values, so URL fields are cleaned here as well as on create.
     const urlFields = new Set<string>(["bannerUrl", "joinUrl"]);
     for (const key of editable) {
