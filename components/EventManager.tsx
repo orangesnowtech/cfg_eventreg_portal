@@ -1,8 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { availableTokens } from "@/lib/message-tokens";
 import type { EventAccessMode, EventField, EventFieldType, EventRecord } from "@/types/event";
+
+/**
+ * The broadcast template no longer adds a greeting of its own, so every compose
+ * box starts with one. Admins can reword or delete it; what is in the box is
+ * what gets sent.
+ */
+const BROADCAST_GREETING = "Hello [name],\n\n";
 
 const FIELD_TYPES: EventFieldType[] = [
   "text",
@@ -91,10 +99,20 @@ export default function EventManager() {
   const [resending, setResending] = useState(false);
   const [resendNote, setResendNote] = useState("");
   const [showBroadcast, setShowBroadcast] = useState(false);
-  const [broadcast, setBroadcast] = useState({ subject: "", message: "" });
+  const [broadcast, setBroadcast] = useState({ subject: "", message: BROADCAST_GREETING });
   const [broadcastBusy, setBroadcastBusy] = useState(false);
   const [broadcastNote, setBroadcastNote] = useState("");
+  // Who the test copy goes to. Blank means the signed-in admin.
+  const [testRecipient, setTestRecipient] = useState({ name: "", email: "" });
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState("");
+
+  // What this event's own form can personalise. Recomputed per selection because
+  // every event collects different fields.
+  const broadcastTokens = useMemo(
+    () => (selected ? availableTokens(selected) : []),
+    [selected]
+  );
 
   // Programmes appear in this dashboard but their form is defined in code, so the
   // builder is read-only for them and the API rejects any PATCH carrying fields.
@@ -310,7 +328,8 @@ export default function EventManager() {
     setSelected(event);
     setDetail(null);
     setShowBroadcast(false);
-    setBroadcast({ subject: "", message: "" });
+    setBroadcast({ subject: "", message: BROADCAST_GREETING });
+    setTestRecipient({ name: "", email: "" });
     setBroadcastNote("");
     const t = await token();
     const response = await fetch(`/api/events/${event.id}/registrations`, {
@@ -362,9 +381,40 @@ export default function EventManager() {
     }
   }
 
+  /** Drops a token in at the caret, so the admin never has to spell one out. */
+  function insertToken(text: string) {
+    const field = messageRef.current;
+    if (!field) return;
+    const start = field.selectionStart ?? field.value.length;
+    const end = field.selectionEnd ?? start;
+    setBroadcast((current) => ({
+      ...current,
+      message: `${current.message.slice(0, start)}${text}${current.message.slice(end)}`,
+    }));
+    // Restore the caret after the inserted token once React has written the value;
+    // without this the cursor jumps to the end and the next click lands wrong.
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(start + text.length, start + text.length);
+    });
+  }
+
   async function sendBroadcast(e: React.FormEvent) {
     e.preventDefault();
+    await postBroadcast(false);
+  }
+
+  /**
+   * Both buttons hit the same endpoint so a test cannot drift from the real send.
+   * A test goes only to the signed-in admin; the compose box is left untouched so
+   * it can be corrected and tested again.
+   */
+  async function postBroadcast(preview: boolean) {
     if (!selected) return;
+    if (!broadcast.subject.trim() || !broadcast.message.trim()) {
+      setBroadcastNote("Add a subject and a message first.");
+      return;
+    }
     setBroadcastBusy(true);
     setBroadcastNote("");
     try {
@@ -372,17 +422,29 @@ export default function EventManager() {
       const response = await fetch(`/api/events/${selected.id}/broadcast`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
-        body: JSON.stringify(broadcast),
+        body: JSON.stringify({
+          ...broadcast,
+          preview,
+          ...(preview
+            ? { previewTo: testRecipient.email, previewName: testRecipient.name }
+            : {}),
+        }),
       });
       const result = await response.json();
       if (!response.ok) {
         setBroadcastNote(result.error || "Could not send broadcast.");
         return;
       }
+      if (preview) {
+        setBroadcastNote(
+          `Test sent to ${result.sentTo} — filled with ${result.filledWith}'s answers.`
+        );
+        return;
+      }
       setBroadcastNote(
         `Sent to ${result.sent} of ${result.total} registrant(s)${result.failed ? ` · ${result.failed} failed` : ""}.`
       );
-      setBroadcast({ subject: "", message: "" });
+      setBroadcast({ subject: "", message: BROADCAST_GREETING });
     } finally {
       setBroadcastBusy(false);
     }
@@ -925,11 +987,76 @@ export default function EventManager() {
               />
               <textarea
                 required
+                ref={messageRef}
                 placeholder="Your message… (plain text; line breaks are kept)"
                 value={broadcast.message}
                 onChange={(e) => setBroadcast({ ...broadcast, message: e.target.value })}
                 className="min-h-32 w-full rounded border p-3 text-sm"
               />
+              <div className="rounded border border-dashed border-gray-300 bg-white p-3">
+                <p className="text-xs font-semibold text-gray-700">
+                  Personalise it — click a token to drop it in at your cursor. Each
+                  registrant receives their own answer in its place. Tokens work in the
+                  subject line too.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {broadcastTokens.map((item) => (
+                    <button
+                      key={item.token}
+                      type="button"
+                      onClick={() => insertToken(item.token)}
+                      title={
+                        item.alwaysAnswered
+                          ? `${item.label} — every registrant has one`
+                          : `${item.label} — optional, so registrants who skipped it get a blank`
+                      }
+                      className="rounded border bg-gray-50 px-2 py-1 font-mono text-xs text-cfg-primary hover:bg-gray-100"
+                    >
+                      {item.token}
+                      {!item.alwaysAnswered && <span className="ml-1 text-amber-600">?</span>}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Nothing is added around your message — the greeting above is yours to
+                  edit. <span className="text-amber-600">?</span> marks an optional field:
+                  registrants who left it blank get nothing in its place.
+                </p>
+              </div>
+              <div className="rounded border bg-white p-3">
+                <p className="text-xs font-semibold text-gray-700">Send a test copy first</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <input
+                    placeholder="Recipient name (optional)"
+                    value={testRecipient.name}
+                    onChange={(e) => setTestRecipient({ ...testRecipient, name: e.target.value })}
+                    className="min-w-40 flex-1 rounded border p-2 text-sm"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Recipient email (optional)"
+                    value={testRecipient.email}
+                    onChange={(e) => setTestRecipient({ ...testRecipient, email: e.target.value })}
+                    className="min-w-48 flex-1 rounded border p-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => postBroadcast(true)}
+                    disabled={broadcastBusy}
+                    className="rounded border border-cfg-primary px-4 py-2 text-sm font-semibold text-cfg-primary disabled:opacity-50"
+                  >
+                    Send test
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Leave both blank and the test goes to you, filled with a real
+                  registrant&apos;s answers — the truest check that your tokens resolve.
+                  Name someone and it goes to them instead, personalised as them, with
+                  placeholders standing in for the form answers: safe to show anyone
+                  outside the team. Either way the subject is tagged{" "}
+                  <span className="font-mono">[TEST]</span> and no registrant is emailed.
+                </p>
+              </div>
               <div className="flex items-center gap-3">
                 <button
                   disabled={broadcastBusy}

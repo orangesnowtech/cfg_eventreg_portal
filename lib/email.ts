@@ -149,6 +149,38 @@ export interface SendResult {
 }
 
 /**
+ * What each network-level failure actually means, in words an admin reading the
+ * dashboard can act on.
+ */
+const NETWORK_HINTS: Record<string, string> = {
+  EAI_AGAIN: "DNS lookup failed — the mail host could not be resolved",
+  ENOTFOUND: "DNS lookup failed — the mail host could not be resolved",
+  ECONNREFUSED: "the connection was refused",
+  ECONNRESET: "the connection was reset mid-request",
+  ETIMEDOUT: "the connection timed out",
+  UND_ERR_CONNECT_TIMEOUT: "the connection timed out",
+  CERT_HAS_EXPIRED: "the TLS certificate has expired",
+  UNABLE_TO_VERIFY_LEAF_SIGNATURE:
+    "the TLS certificate could not be verified — a proxy may be intercepting HTTPS",
+  SELF_SIGNED_CERT_IN_CHAIN:
+    "the TLS certificate could not be verified — a proxy may be intercepting HTTPS",
+};
+
+/**
+ * Node's fetch reports every network-level failure as the same bare "fetch
+ * failed" and hides the real problem on error.cause, which leaves whoever hit
+ * Send staring at a message that says nothing. Unwrap it so the reason names
+ * itself.
+ */
+function describeSendError(error: unknown): string {
+  if (!(error instanceof Error)) return "network or provider error";
+  const cause = error.cause as { code?: string } | undefined;
+  if (!cause?.code) return error.message;
+  const hint = NETWORK_HINTS[cause.code];
+  return hint ? `${error.message} — ${hint} (${cause.code})` : `${error.message} (${cause.code})`;
+}
+
+/**
  * Low-level ZeptoMail send. Normalises the auth token (ZeptoMail expects
  * "Zoho-enczapikey <key>"; we tolerate the key being stored with or without that
  * prefix) and returns the provider's actual error text on failure so callers can
@@ -196,7 +228,7 @@ export async function deliver(message: {
     return { sent: true };
   } catch (error) {
     console.error("Email failed to send:", error);
-    return { sent: false, reason: error instanceof Error ? error.message : "network or provider error" };
+    return { sent: false, reason: describeSendError(error) };
   }
 }
 
@@ -411,32 +443,48 @@ export async function sendBroadcastEmail(input: {
   name: string;
   subject: string;
   message: string;
+  /**
+   * Set only for a test send to the admin themselves: a strip above the message
+   * saying whose answers filled the tokens, so a preview can never be mistaken
+   * for the real thing sitting in an inbox.
+   */
+  previewNotice?: string;
 }): Promise<SendResult> {
   return deliver({
     to: input.to,
     name: input.name,
     subject: input.subject,
-    htmlbody: buildBroadcastHtml(input.event, input.name, input.message),
-    textbody: `${input.message}\n\n—\n${input.event.name}\nCFG Africa`,
+    htmlbody: buildBroadcastHtml(input.event, input.message, input.previewNotice),
+    textbody: `${input.previewNotice ? `${input.previewNotice}\n\n` : ""}${input.message}\n\n—\n${input.event.name}\nCFG Africa`,
     fromName: input.event.emailFromName,
   });
 }
 
-function buildBroadcastHtml(event: EventRecord, name: string, message: string) {
+/**
+ * No greeting is added here. The admin writes the whole message, greeting
+ * included, so the compose box shows exactly what is sent — see the tokens in
+ * lib/message-tokens.ts, which are already resolved by the time this runs.
+ */
+function buildBroadcastHtml(event: EventRecord, message: string, previewNotice?: string) {
   // Admin-entered text: escape it, then turn newlines into breaks so paragraphs survive.
   const body = escapeHtml(message).replace(/\n/g, "<br/>");
+  const previewRow = previewNotice
+    ? `<tr><td style="background-color:#FEF3C7;padding:12px 32px;border-bottom:1px solid #FDE68A;">
+          <p style="margin:0;color:#92400E;font-size:12px;font-weight:700;">${escapeHtml(previewNotice)}</p>
+        </td></tr>`
+    : "";
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background-color:#E0FAF4;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#E0FAF4;padding:24px;">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:10px;overflow:hidden;max-width:600px;">
+        ${previewRow}
         <tr><td style="background-color:#092358;padding:28px 32px;text-align:center;">
           <p style="margin:0;color:#27D2A9;font-size:12px;letter-spacing:2px;font-weight:700;">CFG AFRICA</p>
           <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;">${escapeHtml(event.name)}</h1>
         </td></tr>
         <tr><td style="padding:32px;">
-          <p style="margin:0 0 16px;color:#092358;font-size:16px;">Hello ${escapeHtml(name)},</p>
           <div style="color:#374151;font-size:15px;line-height:1.7;">${body}</div>
         </td></tr>
         <tr><td style="padding:20px 32px;border-top:1px solid #e5e7eb;text-align:center;">
