@@ -149,6 +149,25 @@ export interface SendResult {
 }
 
 /**
+ * Strips anything that must never reach a mail header.
+ *
+ * A stray CR or LF is easy to introduce without noticing — pasted into an
+ * event's sender name, or left on the end of a secret written from a file — and
+ * it shows up as a mangled From line at best and header injection at worst.
+ * Every value that becomes a header goes through here, whatever its source.
+ */
+function headerSafe(value: string | undefined | null): string {
+  if (!value) return "";
+  return value.replace(/\s+/g, " ").trim();
+}
+
+/** Addresses get the same treatment, but with no spaces left at all. */
+function addressSafe(value: string | undefined | null): string {
+  if (!value) return "";
+  return value.replace(/\s+/g, "");
+}
+
+/**
  * What each network-level failure actually means, in words an admin reading the
  * dashboard can act on.
  */
@@ -200,8 +219,11 @@ export async function deliver(message: {
   if (!message.to) return { sent: false, reason: "no recipient address" };
 
   const token = rawKey.startsWith("Zoho-enczapikey") ? rawKey : `Zoho-enczapikey ${rawKey}`;
-  const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL || "noreply@cfgafrica.com";
-  const fromName = message.fromName?.trim() || process.env.ZEPTOMAIL_FROM_NAME || "CFG Africa Events";
+  const fromEmail = addressSafe(process.env.ZEPTOMAIL_FROM_EMAIL) || "noreply@cfgafrica.com";
+  // Both sources are cleaned, not just the per-event override: the environment
+  // value arrives from Secret Manager, where a trailing newline is invisible.
+  const fromName =
+    headerSafe(message.fromName) || headerSafe(process.env.ZEPTOMAIL_FROM_NAME) || "CFG Africa Events";
 
   try {
     const response = await fetch(ZEPTOMAIL_URL, {
@@ -213,8 +235,8 @@ export async function deliver(message: {
       },
       body: JSON.stringify({
         from: { address: fromEmail, name: fromName },
-        to: [{ email_address: { address: message.to, name: message.name } }],
-        subject: message.subject,
+        to: [{ email_address: { address: addressSafe(message.to), name: headerSafe(message.name) } }],
+        subject: headerSafe(message.subject),
         htmlbody: message.htmlbody,
         textbody: message.textbody,
       }),
