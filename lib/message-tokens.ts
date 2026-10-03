@@ -129,15 +129,19 @@ function tokenValues(event: Pick<EventRecord, "name" | "form">, registration: To
  * token — which is far easier to catch in a test send than a silently blank
  * line would be. Answers are substituted in a single pass and never rescanned,
  * so a registrant who typed "[name]" into a field gets it back verbatim.
+ *
+ * Pass `encode` when the template is HTML: answers are whatever a registrant
+ * typed, so they must be escaped on their way into markup.
  */
 export function applyTokens(
   template: string,
   event: Pick<EventRecord, "name" | "form">,
-  registration: TokenSource
+  registration: TokenSource,
+  encode: (value: string) => string = (value) => value
 ): string {
   const values = tokenValues(event, registration);
   return template.replace(/\[([^\][\n]+)\]/g, (whole, key: string) => {
     const value = values.get(tokenKey(key));
-    return value === undefined ? whole : value;
+    return value === undefined ? whole : encode(value);
   });
 }

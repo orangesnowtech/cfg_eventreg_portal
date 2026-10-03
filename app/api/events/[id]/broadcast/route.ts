@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin";
 import { requireAdmin, authError } from "@/lib/server-auth";
-import { sendBroadcastEmail } from "@/lib/email";
+import { escapeHtml, sendBroadcastEmail } from "@/lib/email";
+import { broadcastText, isBlankBroadcast, sanitizeBroadcastHtml } from "@/lib/broadcast-html";
 import { applyTokens, sampleRegistration } from "@/lib/message-tokens";
 import type { EventRecord } from "@/types/event";
 
@@ -9,6 +10,9 @@ const BATCH_SIZE = 5;
 
 /** Deliberately loose: ZeptoMail is the real validator, this only catches typos. */
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** A registrant's answer on its way into HTML: escaped, with its line breaks kept. */
+const answerToHtml = (value: string) => escapeHtml(value).replace(/\r?\n/g, "<br />");
 
 /**
  * Sends an admin-composed message to every real (non-test) registrant of an event.
@@ -21,9 +25,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { subject, message, preview, previewTo, previewName } = await request.json();
 
     const cleanSubject = String(subject || "").trim();
-    const cleanMessage = String(message || "").trim();
+    // The editor sends HTML. It is sanitised once here, and the plain-text
+    // alternative is derived from the result, so both parts say the same thing.
+    const cleanHtml = sanitizeBroadcastHtml(String(message || ""));
+    const cleanText = broadcastText(cleanHtml);
     if (!cleanSubject) return NextResponse.json({ error: "Add a subject." }, { status: 400 });
-    if (!cleanMessage) return NextResponse.json({ error: "Add a message." }, { status: 400 });
+    if (isBlankBroadcast(cleanHtml)) return NextResponse.json({ error: "Add a message." }, { status: 400 });
 
     const eventDoc = await adminDb.collection("events").doc(id).get();
     if (!eventDoc.exists) return NextResponse.json({ error: "Event not found." }, { status: 404 });
@@ -79,7 +86,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         to,
         name: testName || to,
         subject: `[TEST] ${applyTokens(cleanSubject, event, standIn)}`,
-        message: applyTokens(cleanMessage, event, standIn),
+        html: applyTokens(cleanHtml, event, standIn, answerToHtml),
+        text: applyTokens(cleanText, event, standIn),
         previewNotice: `TEST SEND — this is how the message reaches ${filledWith}. No registrant has received it.`,
       });
 
@@ -114,7 +122,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             // Resolved per recipient: the same composed text, filled with this
             // registrant's own answers.
             subject: applyTokens(cleanSubject, event, reg),
-            message: applyTokens(cleanMessage, event, reg),
+            html: applyTokens(cleanHtml, event, reg, answerToHtml),
+            text: applyTokens(cleanText, event, reg),
           })
         )
       );

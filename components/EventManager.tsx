@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { availableTokens } from "@/lib/message-tokens";
+import RichTextEditor, { type RichTextEditorHandle } from "@/components/RichTextEditor";
 import type { EventAccessMode, EventField, EventFieldType, EventRecord } from "@/types/event";
 
 /**
  * The broadcast template no longer adds a greeting of its own, so every compose
  * box starts with one. Admins can reword or delete it; what is in the box is
- * what gets sent.
+ * what gets sent. The message is HTML, as the editor produces it.
  */
-const BROADCAST_GREETING = "Hello [name],\n\n";
+const BROADCAST_GREETING = "<p>Hello [name],</p><p></p>";
 
 const FIELD_TYPES: EventFieldType[] = [
   "text",
@@ -104,7 +105,10 @@ export default function EventManager() {
   const [broadcastNote, setBroadcastNote] = useState("");
   // Who the test copy goes to. Blank means the signed-in admin.
   const [testRecipient, setTestRecipient] = useState({ name: "", email: "" });
-  const messageRef = useRef<HTMLTextAreaElement>(null);
+  const messageRef = useRef<RichTextEditorHandle>(null);
+  // The editor reads its content once, on mount. Bumping this remounts it, which
+  // is how the box is cleared after a send.
+  const [composeKey, setComposeKey] = useState(0);
   const [error, setError] = useState("");
 
   // What this event's own form can personalise. Recomputed per selection because
@@ -158,6 +162,22 @@ export default function EventManager() {
     } finally {
       setUploading(false);
     }
+  }
+
+  /** Stores an image placed in a broadcast and hands the editor its public URL. */
+  async function uploadEmailImage(file: File) {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("purpose", "email");
+    const t = await token();
+    const response = await fetch("/api/events/banner", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}` },
+      body,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not upload that image.");
+    return result.url as string;
   }
 
   function openCreate() {
@@ -383,20 +403,7 @@ export default function EventManager() {
 
   /** Drops a token in at the caret, so the admin never has to spell one out. */
   function insertToken(text: string) {
-    const field = messageRef.current;
-    if (!field) return;
-    const start = field.selectionStart ?? field.value.length;
-    const end = field.selectionEnd ?? start;
-    setBroadcast((current) => ({
-      ...current,
-      message: `${current.message.slice(0, start)}${text}${current.message.slice(end)}`,
-    }));
-    // Restore the caret after the inserted token once React has written the value;
-    // without this the cursor jumps to the end and the next click lands wrong.
-    requestAnimationFrame(() => {
-      field.focus();
-      field.setSelectionRange(start + text.length, start + text.length);
-    });
+    messageRef.current?.insertText(text);
   }
 
   async function sendBroadcast(e: React.FormEvent) {
@@ -411,7 +418,7 @@ export default function EventManager() {
    */
   async function postBroadcast(preview: boolean) {
     if (!selected) return;
-    if (!broadcast.subject.trim() || !broadcast.message.trim()) {
+    if (!broadcast.subject.trim() || messageRef.current?.isEmpty()) {
       setBroadcastNote("Add a subject and a message first.");
       return;
     }
@@ -445,6 +452,7 @@ export default function EventManager() {
         `Sent to ${result.sent} of ${result.total} registrant(s)${result.failed ? ` · ${result.failed} failed` : ""}.`
       );
       setBroadcast({ subject: "", message: BROADCAST_GREETING });
+      setComposeKey((key) => key + 1);
     } finally {
       setBroadcastBusy(false);
     }
@@ -985,14 +993,18 @@ export default function EventManager() {
                 onChange={(e) => setBroadcast({ ...broadcast, subject: e.target.value })}
                 className="w-full rounded border p-3 text-sm"
               />
-              <textarea
-                required
+              <RichTextEditor
+                key={`${selected.id}-${composeKey}`}
                 ref={messageRef}
-                placeholder="Your message… (plain text; line breaks are kept)"
-                value={broadcast.message}
-                onChange={(e) => setBroadcast({ ...broadcast, message: e.target.value })}
-                className="min-h-32 w-full rounded border p-3 text-sm"
+                initialContent={broadcast.message}
+                onChange={(message) => setBroadcast((current) => ({ ...current, message }))}
+                uploadImage={uploadEmailImage}
               />
+              <p className="text-xs text-gray-500">
+                Images can be added from the toolbar, pasted, or dropped in (JPG, PNG or
+                WebP, up to 5MB). Click an image to resize it; align its paragraph to
+                move it.
+              </p>
               <div className="rounded border border-dashed border-gray-300 bg-white p-3">
                 <p className="text-xs font-semibold text-gray-700">
                   Personalise it — click a token to drop it in at your cursor. Each

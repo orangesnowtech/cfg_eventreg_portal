@@ -456,15 +456,18 @@ function buildReminderText({ event, name, accessCode, countdown, startsAtMs }: R
 }
 
 /**
- * Sends an admin-composed message to one registrant of an event. The body is
- * plain text entered by the admin, wrapped in the event's branding.
+ * Sends an admin-composed message to one registrant of an event, wrapped in the
+ * event's branding. The body arrives twice: as HTML already passed through
+ * sanitizeBroadcastHtml (lib/broadcast-html.ts), and as its plain-text twin.
  */
 export async function sendBroadcastEmail(input: {
   event: EventRecord;
   to: string;
   name: string;
   subject: string;
-  message: string;
+  /** Sanitised HTML. Inserted as-is, so it must never be raw request input. */
+  html: string;
+  text: string;
   /**
    * Set only for a test send to the admin themselves: a strip above the message
    * saying whose answers filled the tokens, so a preview can never be mistaken
@@ -476,8 +479,8 @@ export async function sendBroadcastEmail(input: {
     to: input.to,
     name: input.name,
     subject: input.subject,
-    htmlbody: buildBroadcastHtml(input.event, input.message, input.previewNotice),
-    textbody: `${input.previewNotice ? `${input.previewNotice}\n\n` : ""}${input.message}\n\n—\n${input.event.name}\nCFG Africa`,
+    htmlbody: buildBroadcastHtml(input.event, input.html, input.previewNotice),
+    textbody: `${input.previewNotice ? `${input.previewNotice}\n\n` : ""}${input.text}\n\n—\n${input.event.name}\nCFG Africa`,
     fromName: input.event.emailFromName,
   });
 }
@@ -487,9 +490,7 @@ export async function sendBroadcastEmail(input: {
  * included, so the compose box shows exactly what is sent — see the tokens in
  * lib/message-tokens.ts, which are already resolved by the time this runs.
  */
-function buildBroadcastHtml(event: EventRecord, message: string, previewNotice?: string) {
-  // Admin-entered text: escape it, then turn newlines into breaks so paragraphs survive.
-  const body = escapeHtml(message).replace(/\n/g, "<br/>");
+function buildBroadcastHtml(event: EventRecord, body: string, previewNotice?: string) {
   const previewRow = previewNotice
     ? `<tr><td style="background-color:#FEF3C7;padding:12px 32px;border-bottom:1px solid #FDE68A;">
           <p style="margin:0;color:#92400E;font-size:12px;font-weight:700;">${escapeHtml(previewNotice)}</p>

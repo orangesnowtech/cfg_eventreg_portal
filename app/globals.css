@@ -99,3 +99,80 @@ body {
 .cfg-card {
   @apply bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden;
 }
+
+/*
+ * Broadcast compose box. Tailwind's reset flattens headings and lists, so the
+ * editor's content is styled here to match what lib/broadcast-html.ts writes
+ * into the email itself.
+ */
+.rich-text-editor .tiptap {
+  color: #374151;
+  line-height: 1.7;
+}
+
+.rich-text-editor .tiptap p {
+  margin: 0 0 14px;
+}
+
+.rich-text-editor .tiptap h2 {
+  margin: 22px 0 10px;
+  color: #092358;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.rich-text-editor .tiptap h3 {
+  margin: 18px 0 8px;
+  color: #092358;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.rich-text-editor .tiptap ul,
+.rich-text-editor .tiptap ol {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.rich-text-editor .tiptap ul {
+  list-style: disc;
+}
+
+.rich-text-editor .tiptap ol {
+  list-style: decimal;
+}
+
+.rich-text-editor .tiptap li p {
+  margin-bottom: 6px;
+}
+
+.rich-text-editor .tiptap blockquote {
+  margin: 0 0 14px;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid #27D2A9;
+  color: #4b5563;
+}
+
+.rich-text-editor .tiptap hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 20px 0;
+}
+
+.rich-text-editor .tiptap a {
+  color: #092358;
+  text-decoration: underline;
+}
+
+.rich-text-editor .tiptap img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-text-editor .tiptap img.ProseMirror-selectednode {
+  outline: 2px solid #27D2A9;
+  outline-offset: 2px;
+}

@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
 
     const bucket = getAdminBucket();
     // A random name avoids collisions and stops one upload overwriting another.
-    const objectName = `event-banners/${randomUUID()}.${extension}`;
+    // Images placed in a broadcast email are kept apart from event artwork.
+    const folder = form.get("purpose") === "email" ? "email-images" : "event-banners";
+    const objectName = `${folder}/${randomUUID()}.${extension}`;
     const target = bucket.file(objectName);
 
     await target.save(Buffer.from(await file.arrayBuffer()), {
