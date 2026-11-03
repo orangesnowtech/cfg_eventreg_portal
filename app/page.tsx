@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import EventCountdown from "@/components/EventCountdown";
+import EventDetails from "@/components/EventDetails";
 import { getFeaturedEvent } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
@@ -40,18 +41,6 @@ export default async function Home() {
       <div className="container mx-auto px-4 py-12">
         {featured ? (
           <div className="mx-auto max-w-3xl">
-            {featured.bannerUrl && (
-              <div className="relative mb-6 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg">
-                <Image
-                  src={featured.bannerUrl}
-                  alt={`${featured.name} banner`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 768px"
-                  className="object-cover"
-                  priority
-                />
-              </div>
-            )}
             <div className="rounded-2xl bg-cfg-primary p-8 text-center text-white shadow-xl md:p-12">
               <p className="text-sm font-semibold uppercase tracking-widest text-cfg-secondary">
                 {phase === "present" ? "Happening now" : "Featured event"}
@@ -69,14 +58,20 @@ export default async function Home() {
                 </p>
               )}
 
-              <div className="mt-4 text-sm text-white/70">
-                {featured.venue && <span>{featured.venue}</span>}
-                {featured.startAt && (
-                  <span className="ml-3">
-                    {new Date(featured.startAt).toLocaleString()}
-                  </span>
-                )}
-              </div>
+              {featured.bannerUrl && (
+                <div className="relative mt-6 aspect-3/1 w-full overflow-hidden rounded-xl">
+                  <Image
+                    src={featured.bannerUrl}
+                    alt={`${featured.name} banner`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 672px"
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              )}
+
+              <EventDetails event={featured} tone="dark" className="mt-6" />
 
               {phase === "upcoming" && featured.startAt && (
                 <div className="mt-8">
@@ -88,7 +83,7 @@ export default async function Home() {
                 {open ? (
                   <Link
                     href={`/events/${featured.slug}`}
-                    className="rounded-lg bg-cfg-secondary px-7 py-3 font-bold text-cfg-primary transition-opacity hover:opacity-90"
+                    className="rounded-lg border-2 border-white bg-cfg-primary px-7 py-3 font-bold text-white transition-opacity hover:opacity-90"
                   >
                     Register now
                   </Link>

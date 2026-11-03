@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import DynamicRegistrationForm from "@/components/DynamicRegistrationForm";
+import EventDetails from "@/components/EventDetails";
 import { adminDb } from "@/lib/admin";
 import { eventPhase } from "@/lib/events";
 import type { EventRecord } from "@/types/event";
@@ -63,5 +64,5 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   // A testing event is never treated as closed: the whole point is that the
   // builder can still submit through it before the real dates are set.
   const closed = event.status !== "testing" && (event.status === "closed" || ended);
-  return <main className="min-h-screen bg-cfg-mint px-4 py-12"><div className="mx-auto max-w-4xl">{event.bannerUrl && <div className="relative mb-8 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg"><Image src={event.bannerUrl} alt={`${event.name} banner`} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" priority /></div>}<div className="mb-8 text-center"><p className="font-semibold uppercase tracking-widest text-cfg-secondary">CFG Africa</p><h1 className="mt-2 text-4xl font-bold text-cfg-primary">{event.name}</h1>{event.description && <p className="mx-auto mt-3 max-w-2xl text-gray-700">{event.description}</p>}<div className="mt-4 text-sm text-gray-600">{event.venue && <span>{event.venue}</span>}{event.startAt && <span className="ml-3">{new Date(event.startAt).toLocaleString()}</span>}</div></div>{closed ? <ClosedNotice ended={ended} /> : <DynamicRegistrationForm event={event} />}</div></main>;
+  return <main className="min-h-screen bg-cfg-mint px-4 py-12"><div className="mx-auto max-w-4xl"><div className="mb-8 text-center"><Image src="/cfg-logo.png" alt="CFG Africa" width={180} height={69} className="mx-auto h-auto w-40 md:w-44" /><h1 className="mt-4 text-4xl font-bold text-cfg-primary">{event.name}</h1>{event.description && <p className="mx-auto mt-3 max-w-2xl text-gray-700">{event.description}</p>}{event.bannerUrl && <div className="relative mt-6 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg"><Image src={event.bannerUrl} alt={`${event.name} banner`} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" priority /></div>}<EventDetails event={event} className="mt-6" /></div>{closed ? <ClosedNotice ended={ended} /> : <DynamicRegistrationForm event={event} />}</div></main>;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import EventCountdown from "@/components/EventCountdown";
+import EventDetails from "@/components/EventDetails";
 import { getGroupedPublicEvents } from "@/lib/events";
 import type { EventRecord } from "@/types/event";
 
@@ -11,17 +12,6 @@ function EventCard({ event, phase }: { event: EventRecord; phase: string }) {
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      {event.bannerUrl && (
-        <div className="relative aspect-3/1 w-full">
-          <Image
-            src={event.bannerUrl}
-            alt={`${event.name} banner`}
-            fill
-            sizes="(max-width: 768px) 100vw, 400px"
-            className="object-cover"
-          />
-        </div>
-      )}
       <div className="flex flex-1 flex-col p-6">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-xl font-bold text-cfg-primary">{event.name}</h3>
@@ -32,16 +22,25 @@ function EventCard({ event, phase }: { event: EventRecord; phase: string }) {
         )}
       </div>
 
-      <div className="mt-2 text-sm text-gray-500">
-        {event.startAt && <span>{new Date(event.startAt).toLocaleString()}</span>}
-        {event.venue && <span className="block">{event.venue}</span>}
-      </div>
-
       {event.description && (
         <p className="mt-3 line-clamp-3 text-sm text-gray-600">
           {event.description}
         </p>
       )}
+
+      {event.bannerUrl && (
+        <div className="relative mt-4 aspect-3/1 w-full overflow-hidden rounded-lg">
+          <Image
+            src={event.bannerUrl}
+            alt={`${event.name} banner`}
+            fill
+            sizes="(max-width: 768px) 100vw, 400px"
+            className="object-cover"
+          />
+        </div>
+      )}
+
+      <EventDetails event={event} compact className="mt-4" />
 
       {phase === "upcoming" && event.startAt && (
         <div className="mt-5">
