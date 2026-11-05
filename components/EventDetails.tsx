@@ -30,6 +30,8 @@ const TONES = {
   light: { band: "bg-white text-cfg-primary shadow-sm ring-1 ring-cfg-primary/10", badge: "bg-cfg-mint text-cfg-primary" },
   // Inside the navy featured card on the homepage.
   dark: { band: "bg-white/10 text-white ring-1 ring-white/15", badge: "bg-cfg-secondary text-cfg-primary" },
+  // No card at all: a plain row inside another card, e.g. under the title on the registration form.
+  bare: { band: "text-cfg-primary", badge: "bg-cfg-mint text-cfg-primary" },
 };
 
 function Item({ icon, badge, children }: { icon: ReactNode; badge: string; children: ReactNode }) {
@@ -65,6 +67,8 @@ export default function EventDetails({
       className={`rounded-xl ${band} ${
         compact
           ? "flex flex-col gap-2 p-3 text-sm"
+          : tone === "bare"
+          ? "flex flex-wrap items-center gap-x-6 gap-y-3 text-sm md:text-base"
           : "flex flex-wrap items-center justify-center gap-x-6 gap-y-3 px-5 py-4 text-sm md:text-base"
       } ${className}`}
     >

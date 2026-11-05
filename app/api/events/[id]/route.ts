@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (body.featured !== undefined) return NextResponse.json({ error: "Programmes are not shown on the homepage feature slot." }, { status: 400 });
     }
 
-    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "emailFromName", "remindersEnabled", "registrationDisplay"] as const;
+    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "mobileBannerUrl", "accessMode", "joinUrl", "joinInstructions", "emailFromName", "remindersEnabled", "registrationDisplay"] as const;
 
     if (body.accessMode !== undefined || body.joinUrl !== undefined) {
       const accessError = validateEventAccess(
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // — which is also a move to "published" — must not overwrite it.
     const update: Record<string, unknown> = { updatedAt: new Date().toISOString(), ...(body.status === "published" && !doc.data()?.publishedAt ? { publishedAt: new Date().toISOString() } : {}) };
     // Edits arrive as raw values, so URL fields are cleaned here as well as on create.
-    const urlFields = new Set<string>(["bannerUrl", "joinUrl"]);
+    const urlFields = new Set<string>(["bannerUrl", "mobileBannerUrl", "joinUrl"]);
     for (const key of editable) {
       if (body[key] === undefined) continue;
       if (urlFields.has(key)) update[key] = cleanUrl(body[key]);

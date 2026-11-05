@@ -92,6 +92,11 @@ export interface EventRecord {
   publishedAt?: string;
   /** Banner or flyer shown on the homepage, listing, and registration page. */
   bannerUrl?: string;
+  /**
+   * Portrait (4:5) version of the banner for phones, registration page only.
+   * Without it, phones get bannerUrl cropped to 3:1 as before.
+   */
+  mobileBannerUrl?: string;
   /** Defaults to "code" when unset, matching how earlier events behaved. */
   accessMode?: EventAccessMode;
   /** Webinar or meeting link; required when accessMode includes a link. */

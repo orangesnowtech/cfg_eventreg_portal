@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import DynamicRegistrationForm from "@/components/DynamicRegistrationForm";
 import EventDetails from "@/components/EventDetails";
 import { adminDb } from "@/lib/admin";
-import { eventPhase } from "@/lib/events";
+import { eventPhase, eventStartMs } from "@/lib/events";
 import type { EventRecord } from "@/types/event";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +60,42 @@ function ClosedNotice({ ended, header }: { ended: boolean; header?: ReactNode })
   );
 }
 
+/** Phones are below this width; it matches Tailwind's `md` breakpoint. */
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+/**
+ * The 3:1 banner, or on phones the 4:5 mobile banner when one was uploaded.
+ * The frame changes shape with the image, so neither version is cropped when it
+ * is designed at its recommended size. A <picture> lets the browser download only
+ * the version it shows.
+ */
+function Banner({ event }: { event: EventRecord }) {
+  const frame = "relative mt-6 w-full overflow-hidden rounded-2xl shadow-lg";
+  const alt = `${event.name} banner`;
+  const common = { alt, fill: true, sizes: "(max-width: 896px) 100vw, 896px", className: "object-cover" };
+  const desktop = event.bannerUrl;
+  const mobile = event.mobileBannerUrl;
+
+  if (desktop && mobile) {
+    const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: desktop });
+    const { props: mobileProps } = getImageProps({ ...common, src: mobile });
+    return (
+      <div className={`${frame} aspect-4/5 md:aspect-3/1`}>
+        <picture>
+          <source media={DESKTOP_QUERY} srcSet={desktopSrcSet} sizes={common.sizes} />
+          <img {...mobileProps} alt={alt} fetchPriority="high" loading="eager" />
+        </picture>
+      </div>
+    );
+  }
+  // A mobile banner alone would crop badly into the wide frame, so it shows on phones only.
+  return (
+    <div className={`${frame} ${desktop ? "aspect-3/1" : "aspect-4/5 md:hidden"}`}>
+      <Image {...common} alt={alt} src={(desktop || mobile)!} priority />
+    </div>
+  );
+}
+
 export default async function EventRegistrationPage({ params }: { params: Promise<{ slug: string }> }) {
   const event = await getEvent((await params).slug); if (!event) notFound();
   const ended = eventPhase(event) === "past";
@@ -69,12 +105,16 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   const display = event.registrationDisplay || {};
   const showTitle = display.title !== false;
   const showDescription = display.description !== false && Boolean(event.description);
-  const showBanner = display.banner !== false && Boolean(event.bannerUrl);
-  // The title and description open the form card rather than sitting above it.
-  const header = showTitle || showDescription ? (
-    <div className="mb-6 border-b border-gray-100 pb-6">
+  const showBanner = display.banner !== false && Boolean(event.bannerUrl || event.mobileBannerUrl);
+  // Mirrors EventDetails' own empty check, so an empty header is never drawn.
+  const showDetails = display.details !== false && (Boolean(event.venue) || eventStartMs(event) !== null);
+  // Title, description, then venue/date/time open the form card rather than sitting above it.
+  // `centered` matches the closed notice, which is centre-aligned.
+  const header = (centered: boolean) => showTitle || showDescription || showDetails ? (
+    <div className="mb-6 space-y-4 border-b border-gray-100 pb-6">
       {showTitle && <h1 className="text-3xl font-bold text-cfg-primary md:text-4xl">{event.name}</h1>}
-      {showDescription && <p className={`whitespace-pre-line text-gray-700 ${showTitle ? "mt-3" : ""}`}>{event.description}</p>}
+      {showDescription && <p className="whitespace-pre-line text-gray-700">{event.description}</p>}
+      {showDetails && <EventDetails event={event} tone="bare" className={centered ? "justify-center" : ""} />}
     </div>
   ) : null;
   return (
@@ -82,15 +122,9 @@ export default async function EventRegistrationPage({ params }: { params: Promis
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 text-center">
           <Image src="/cfg-logo.png" alt="CFG Africa" width={180} height={69} className="mx-auto h-auto w-40 md:w-44" />
-          {showBanner && (
-            <div className="relative mt-6 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg">
-              <Image src={event.bannerUrl!} alt={`${event.name} banner`} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" priority />
-            </div>
-          )}
-          {/* Hidden as a whole when the banner already carries the venue, date and time. */}
-          {display.details !== false && <EventDetails event={event} className="mt-6" />}
+          {showBanner && <Banner event={event} />}
         </div>
-        {closed ? <ClosedNotice ended={ended} header={header} /> : <DynamicRegistrationForm event={event} header={header} />}
+        {closed ? <ClosedNotice ended={ended} header={header(true)} /> : <DynamicRegistrationForm event={event} header={header(false)} />}
       </div>
     </main>
   );

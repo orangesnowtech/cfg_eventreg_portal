@@ -58,6 +58,7 @@ const blank = {
   venue: "",
   startAt: "",
   bannerUrl: "",
+  mobileBannerUrl: "",
   accessMode: "code" as EventAccessMode,
   joinUrl: "",
   joinInstructions: "",
@@ -127,7 +128,8 @@ export default function EventManager() {
   // builder is read-only for them and the API rejects any PATCH carrying fields.
   const editingProgramme = events.find((e) => e.id === editingId)?.kind === "programme";
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  // Which banner slot is uploading, so each shows its own progress.
+  const [uploading, setUploading] = useState<"" | "bannerUrl" | "mobileBannerUrl">("");
 
   const token = useCallback(async () => (user ? user.getIdToken() : ""), [user]);
 
@@ -146,9 +148,9 @@ export default function EventManager() {
     load();
   }, [load]);
 
-  async function uploadBanner(file: File) {
+  async function uploadBanner(file: File, slot: "bannerUrl" | "mobileBannerUrl") {
     setError("");
-    setUploading(true);
+    setUploading(slot);
     try {
       const body = new FormData();
       body.append("file", file);
@@ -163,9 +165,9 @@ export default function EventManager() {
         setError(result.error || "Could not upload that image.");
         return;
       }
-      setForm((current) => ({ ...current, bannerUrl: result.url }));
+      setForm((current) => ({ ...current, [slot]: result.url }));
     } finally {
-      setUploading(false);
+      setUploading("");
     }
   }
 
@@ -206,6 +208,7 @@ export default function EventManager() {
       venue: event.venue || "",
       startAt: (event.startAt || "").slice(0, 16),
       bannerUrl: event.bannerUrl || "",
+      mobileBannerUrl: event.mobileBannerUrl || "",
       accessMode: (event.accessMode || "code") as EventAccessMode,
       joinUrl: event.joinUrl || "",
       joinInstructions: event.joinInstructions || "",
@@ -245,6 +248,7 @@ export default function EventManager() {
         venue: form.venue,
         startAt: form.startAt,
         bannerUrl: form.bannerUrl,
+        mobileBannerUrl: form.mobileBannerUrl,
         accessMode: form.accessMode,
         joinUrl: form.joinUrl,
         joinInstructions: form.joinInstructions,
@@ -662,45 +666,54 @@ export default function EventManager() {
               )}
             </div>
 
-            <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Flyer / banner
-              </label>
-              {form.bannerUrl ? (
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={form.bannerUrl}
-                    alt="Event banner preview"
-                    className="h-28 w-auto max-w-full rounded border object-cover"
+            {(
+              [
+                {
+                  slot: "bannerUrl",
+                  label: "Flyer / banner",
+                  hint: "2400 × 800 px (3:1). JPG, PNG, or WebP up to 5MB. Shown on the homepage, the events list, and the registration page.",
+                },
+                {
+                  slot: "mobileBannerUrl",
+                  label: "Mobile banner (optional)",
+                  hint: "1080 × 1350 px (4:5). Replaces the banner on phones, on the registration page only. Leave empty to use the banner above everywhere.",
+                },
+              ] as const
+            ).map(({ slot, label, hint }) => (
+              <div key={slot} className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+                {form[slot] ? (
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form[slot]}
+                      alt={`${label} preview`}
+                      className="h-28 w-auto max-w-full rounded border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, [slot]: "" })}
+                      className="text-sm font-semibold text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={Boolean(uploading)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadBanner(file, slot);
+                      e.target.value = "";
+                    }}
+                    className="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-cfg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, bannerUrl: "" })}
-                    className="text-sm font-semibold text-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadBanner(file);
-                    e.target.value = "";
-                  }}
-                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-cfg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
-                />
-              )}
-              <p className="mt-2 text-xs text-gray-500">
-                {uploading
-                  ? "Uploading…"
-                  : "JPG, PNG, or WebP up to 5MB. Shown on the homepage, the events list, and the registration page."}
-              </p>
-            </div>
+                )}
+                <p className="mt-2 text-xs text-gray-500">{uploading === slot ? "Uploading…" : hint}</p>
+              </div>
+            ))}
 
             <div className="md:col-span-2 rounded-lg border bg-gray-50 p-4">
               <p className="mb-2 text-sm font-medium text-gray-700">
@@ -709,7 +722,7 @@ export default function EventManager() {
               <div className="flex flex-wrap gap-x-6 gap-y-2">
                 {(
                   [
-                    ["showBanner", "Banner"],
+                    ["showBanner", "Banner (both versions)"],
                     ["showTitle", "Title"],
                     ["showDescription", "Event description"],
                     ["showDetails", "Event details (venue, date and time)"],
