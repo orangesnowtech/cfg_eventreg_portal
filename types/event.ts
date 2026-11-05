@@ -50,6 +50,21 @@ export interface EventForm {
   fields: EventField[];
 }
 
+/**
+ * Which parts of the event are shown on its registration page. Each key is
+ * shown unless it is explicitly false, so events saved before these settings
+ * existed keep showing everything.
+ */
+export interface RegistrationDisplay {
+  banner?: boolean;
+  title?: boolean;
+  description?: boolean;
+  /** The details card: venue, date and time together. */
+  details?: boolean;
+}
+
+export const REGISTRATION_DISPLAY_KEYS = ["banner", "title", "description", "details"] as const;
+
 export interface EventRecord {
   id: string;
   /** Absent means "event"; see EventKind. */
@@ -88,6 +103,8 @@ export interface EventRecord {
    * before reminders existed still get them once they are published and dated.
    */
   remindersEnabled?: boolean;
+  /** What the registration page shows; see RegistrationDisplay. */
+  registrationDisplay?: RegistrationDisplay;
   /** Populated by the admin events listing; absent on the public payload. */
   registrationCount?: number;
   /** Test submissions collected while the event was in testing. */

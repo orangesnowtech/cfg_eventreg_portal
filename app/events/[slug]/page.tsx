@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,9 +33,10 @@ async function getEvent(slug: string): Promise<EventRecord | null> {
  * listing has always described both cases as "registration closed"; this is the
  * same message for anyone arriving on the direct link.
  */
-function ClosedNotice({ ended }: { ended: boolean }) {
+function ClosedNotice({ ended, header }: { ended: boolean; header?: ReactNode }) {
   return (
     <div className="rounded-2xl bg-white p-8 text-center shadow-xl md:p-10">
+      {header}
       <p className="text-sm font-bold uppercase tracking-widest text-orange-600">
         {ended ? "This event has ended" : "Registration closed"}
       </p>
@@ -64,5 +66,32 @@ export default async function EventRegistrationPage({ params }: { params: Promis
   // A testing event is never treated as closed: the whole point is that the
   // builder can still submit through it before the real dates are set.
   const closed = event.status !== "testing" && (event.status === "closed" || ended);
-  return <main className="min-h-screen bg-cfg-mint px-4 py-12"><div className="mx-auto max-w-4xl"><div className="mb-8 text-center"><Image src="/cfg-logo.png" alt="CFG Africa" width={180} height={69} className="mx-auto h-auto w-40 md:w-44" /><h1 className="mt-4 text-4xl font-bold text-cfg-primary">{event.name}</h1>{event.description && <p className="mx-auto mt-3 max-w-2xl text-gray-700">{event.description}</p>}{event.bannerUrl && <div className="relative mt-6 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg"><Image src={event.bannerUrl} alt={`${event.name} banner`} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" priority /></div>}<EventDetails event={event} className="mt-6" /></div>{closed ? <ClosedNotice ended={ended} /> : <DynamicRegistrationForm event={event} />}</div></main>;
+  const display = event.registrationDisplay || {};
+  const showTitle = display.title !== false;
+  const showDescription = display.description !== false && Boolean(event.description);
+  const showBanner = display.banner !== false && Boolean(event.bannerUrl);
+  // The title and description open the form card rather than sitting above it.
+  const header = showTitle || showDescription ? (
+    <div className="mb-6 border-b border-gray-100 pb-6">
+      {showTitle && <h1 className="text-3xl font-bold text-cfg-primary md:text-4xl">{event.name}</h1>}
+      {showDescription && <p className={`whitespace-pre-line text-gray-700 ${showTitle ? "mt-3" : ""}`}>{event.description}</p>}
+    </div>
+  ) : null;
+  return (
+    <main className="min-h-screen bg-cfg-mint px-4 py-12">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-8 text-center">
+          <Image src="/cfg-logo.png" alt="CFG Africa" width={180} height={69} className="mx-auto h-auto w-40 md:w-44" />
+          {showBanner && (
+            <div className="relative mt-6 aspect-3/1 w-full overflow-hidden rounded-2xl shadow-lg">
+              <Image src={event.bannerUrl!} alt={`${event.name} banner`} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" priority />
+            </div>
+          )}
+          {/* Hidden as a whole when the banner already carries the venue, date and time. */}
+          {display.details !== false && <EventDetails event={event} className="mt-6" />}
+        </div>
+        {closed ? <ClosedNotice ended={ended} header={header} /> : <DynamicRegistrationForm event={event} header={header} />}
+      </div>
+    </main>
+  );
 }

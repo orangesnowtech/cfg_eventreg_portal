@@ -63,6 +63,11 @@ const blank = {
   joinInstructions: "",
   emailFromName: "",
   remindersEnabled: true,
+  // Everything is shown until an admin hides it.
+  showBanner: true,
+  showTitle: true,
+  showDescription: true,
+  showDetails: true,
   formTitle: "Registration form",
   introText: "",
   fields: starterFields,
@@ -207,6 +212,11 @@ export default function EventManager() {
       emailFromName: event.emailFromName || "",
       // Events created before reminders existed have no flag and are opted in.
       remindersEnabled: event.remindersEnabled !== false,
+      // Absent or true both mean shown, so older events keep everything visible.
+      showBanner: event.registrationDisplay?.banner !== false,
+      showTitle: event.registrationDisplay?.title !== false,
+      showDescription: event.registrationDisplay?.description !== false,
+      showDetails: event.registrationDisplay?.details !== false,
       formTitle: event.form.title,
       introText: event.form.introText || "",
       fields: event.form.fields,
@@ -240,6 +250,12 @@ export default function EventManager() {
         joinInstructions: form.joinInstructions,
         emailFromName: form.emailFromName,
         remindersEnabled: form.remindersEnabled,
+        registrationDisplay: {
+          banner: form.showBanner,
+          title: form.showTitle,
+          description: form.showDescription,
+          details: form.showDetails,
+        },
         ...(editingProgramme
           ? {}
           : {
@@ -592,18 +608,13 @@ export default function EventManager() {
                 </span>
               </label>
             </div>
+            {/* The form title is no longer shown on the page (the event title heads the
+                form), but the API still requires one, so the stored value is kept. */}
             <input
-              required
-              placeholder="Form title"
-              value={form.formTitle}
-              onChange={(e) => setForm({ ...form, formTitle: e.target.value })}
-              className="rounded border p-3"
-            />
-            <input
-              placeholder="Form intro"
+              placeholder="Form intro (optional, shown above the fields)"
               value={form.introText}
               onChange={(e) => setForm({ ...form, introText: e.target.value })}
-              className="rounded border p-3"
+              className="rounded border p-3 md:col-span-2"
             />
 
             <div className="md:col-span-2 rounded-lg border bg-gray-50 p-4">
@@ -688,6 +699,34 @@ export default function EventManager() {
                 {uploading
                   ? "Uploading…"
                   : "JPG, PNG, or WebP up to 5MB. Shown on the homepage, the events list, and the registration page."}
+              </p>
+            </div>
+
+            <div className="md:col-span-2 rounded-lg border bg-gray-50 p-4">
+              <p className="mb-2 text-sm font-medium text-gray-700">
+                Show on the registration page
+              </p>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {(
+                  [
+                    ["showBanner", "Banner"],
+                    ["showTitle", "Title"],
+                    ["showDescription", "Event description"],
+                    ["showDetails", "Event details (venue, date and time)"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Only affects the registration page. The homepage, events list and emails are unchanged.
               </p>
             </div>
           </div>

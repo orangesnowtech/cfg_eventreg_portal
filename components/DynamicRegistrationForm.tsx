@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { EventRecord } from "@/types/event";
 
-export default function DynamicRegistrationForm({ event }: { event: EventRecord }) {
+/** `header` is the event's title and description, drawn at the top of the form card. */
+export default function DynamicRegistrationForm({ event, header }: { event: EventRecord; header?: ReactNode }) {
   const [values, setValues] = useState<Record<string, string | boolean>>({});
   const [message, setMessage] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -32,7 +33,7 @@ export default function DynamicRegistrationForm({ event }: { event: EventRecord 
     {showLink && <div className={showCode ? "mt-8 border-t pt-6" : ""}><p className="text-sm font-semibold text-gray-500">JOINING LINK</p><a href={event.joinUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block rounded-lg bg-cfg-secondary px-6 py-3 font-bold text-cfg-primary">Join the event</a><p className="mt-3 break-all text-xs text-gray-500">{event.joinUrl}</p>{event.joinInstructions && <p className="mt-3 text-sm text-gray-600">{event.joinInstructions}</p>}</div>}
     <p className="mt-6 text-sm text-gray-500">{emailSent ? "We've emailed these details to you." : "Please save these details now — we could not send a confirmation email."}</p>
     <button onClick={() => setAccessCode("")} className="mt-6 rounded-lg bg-cfg-primary px-5 py-3 font-semibold text-white">Register another person</button></div>;
-  return <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-xl md:p-8">{testBanner}<h2 className="mb-2 text-2xl font-bold text-cfg-primary">{event.form.title}</h2><p className="mb-6 text-gray-600">{event.form.introText}</p>{message && <p className="mb-5 rounded-lg bg-red-50 p-3 text-red-700">{message}</p>}<div className="grid gap-5 md:grid-cols-2">
+  return <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-xl md:p-8">{testBanner}{header}{event.form.introText && <p className="mb-6 text-gray-600">{event.form.introText}</p>}{message && <p className="mb-5 rounded-lg bg-red-50 p-3 text-red-700">{message}</p>}<div className="grid gap-5 md:grid-cols-2">
     {event.form.fields.map((field) => <label key={field.id} className={field.type === "textarea" ? "md:col-span-2" : ""}><span className="mb-1 block font-medium text-gray-800">{field.label}{field.required && <b className="text-red-500"> *</b>}</span>{field.type === "textarea" ? <textarea required={field.required} value={String(values[field.id] || "")} placeholder={field.placeholder} onChange={(e) => update(field.id, e.target.value)} className="min-h-28 w-full rounded-lg border border-gray-300 p-3" /> : field.type === "select" || field.type === "radio" ? <select required={field.required} value={String(values[field.id] || "")} onChange={(e) => update(field.id, e.target.value)} className="w-full rounded-lg border border-gray-300 bg-white p-3"><option value="">Select an option</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : field.type === "checkbox" ? <span className="flex items-center gap-2"><input type="checkbox" checked={Boolean(values[field.id])} onChange={(e) => update(field.id, e.target.checked)} required={field.required} /> <span className="text-sm text-gray-600">Yes</span></span> : <input required={field.required} type={field.type === "phone" ? "tel" : field.type} value={String(values[field.id] || "")} placeholder={field.placeholder} onChange={(e) => update(field.id, e.target.value)} className="w-full rounded-lg border border-gray-300 p-3" />}{field.helpText && <small className="mt-1 block text-gray-500">{field.helpText}</small>}</label>)}
   </div><button disabled={busy} className="mt-7 w-full rounded-lg bg-cfg-primary px-5 py-3 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50">{busy ? "Submitting…" : "Submit registration"}</button></form>;
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { EventField } from "@/types/event";
+import { REGISTRATION_DISPLAY_KEYS, type EventField, type RegistrationDisplay } from "@/types/event";
 
 export function buildEventFormSchema(fields: EventField[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
@@ -35,6 +35,20 @@ export function cleanUrl(value: unknown, maxLength = 500): string {
  */
 export function cleanSenderName(value: unknown, maxLength = 78): string {
   return String(value ?? "").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+/**
+ * Registration page visibility switches, reduced to the known keys with boolean
+ * values. Anything unrecognised is dropped, and a missing key stays missing so it
+ * keeps its "shown" default.
+ */
+export function cleanRegistrationDisplay(value: unknown): RegistrationDisplay {
+  const input = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const out: RegistrationDisplay = {};
+  for (const key of REGISTRATION_DISPLAY_KEYS) {
+    if (typeof input[key] === "boolean") out[key] = input[key] as boolean;
+  }
+  return out;
 }
 
 /**

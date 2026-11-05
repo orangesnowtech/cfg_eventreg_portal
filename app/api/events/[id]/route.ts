@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/admin";
 import { requireAdmin, authError } from "@/lib/server-auth";
-import { validateEventForm, validateEventAccess, cleanUrl, cleanSenderName } from "@/lib/validations/event-form";
+import { validateEventForm, validateEventAccess, cleanUrl, cleanSenderName, cleanRegistrationDisplay } from "@/lib/validations/event-form";
 import type { EventField } from "@/types/event";
 
 /**
@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (body.featured !== undefined) return NextResponse.json({ error: "Programmes are not shown on the homepage feature slot." }, { status: 400 });
     }
 
-    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "emailFromName", "remindersEnabled"] as const;
+    const editable = ["name", "description", "venue", "startAt", "endAt", "timezone", "status", "featured", "bannerUrl", "accessMode", "joinUrl", "joinInstructions", "emailFromName", "remindersEnabled", "registrationDisplay"] as const;
 
     if (body.accessMode !== undefined || body.joinUrl !== undefined) {
       const accessError = validateEventAccess(
@@ -62,6 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (body[key] === undefined) continue;
       if (urlFields.has(key)) update[key] = cleanUrl(body[key]);
       else if (key === "emailFromName") update[key] = cleanSenderName(body[key]);
+      else if (key === "registrationDisplay") update[key] = cleanRegistrationDisplay(body[key]);
       else update[key] = body[key];
     }
 
