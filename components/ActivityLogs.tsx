@@ -50,6 +50,7 @@ export default function ActivityLogs() {
       case "check_in":
         return <UserCheck className="h-5 w-5 text-green-600" />;
       case "admin_created":
+      case "admin_updated":
         return <Shield className="h-5 w-5 text-purple-600" />;
       case "admin_login":
         return <LogIn className="h-5 w-5 text-gray-600" />;
@@ -65,6 +66,7 @@ export default function ActivityLogs() {
       case "check_in":
         return "bg-green-100 text-green-800";
       case "admin_created":
+      case "admin_updated":
         return "bg-purple-100 text-purple-800";
       case "admin_login":
         return "bg-gray-100 text-gray-800";
@@ -81,6 +83,8 @@ export default function ActivityLogs() {
         return "Check-In";
       case "admin_created":
         return "Admin Created";
+      case "admin_updated":
+        return "Admin Updated";
       case "admin_login":
         return "Admin Login";
       default:
@@ -112,6 +116,7 @@ export default function ActivityLogs() {
             <option value="registration">Registrations</option>
             <option value="check_in">Check-Ins</option>
             <option value="admin_created">Admin Created</option>
+            <option value="admin_updated">Admin Updated</option>
             <option value="admin_login">Admin Logins</option>
           </select>
         </div>

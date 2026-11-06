@@ -74,7 +74,7 @@ export interface AdminUser {
 }
 
 // Activity Log Interface
-export type ActivityType = "registration" | "check_in" | "admin_created" | "admin_login";
+export type ActivityType = "registration" | "check_in" | "admin_created" | "admin_updated" | "admin_login";
 
 export interface ActivityLog {
   id?: string;

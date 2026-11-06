@@ -127,17 +127,6 @@ export default async function EventRegistrationPage({ params }: { params: Promis
         <div className="mb-8 text-center">
           <Image src="/cfg-logo.png" alt="CFG Africa" width={180} height={69} className="mx-auto h-auto w-40 md:w-44" />
           {showBanner && <Banner event={event} />}
-          {/* The banner can push the form below the fold, especially the tall
-              mobile one, so give a way straight down to it. Without a banner the
-              form already starts just under the logo. */}
-          {showBanner && !closed && (
-            <a
-              href="#register"
-              className="mt-6 inline-block rounded-lg bg-cfg-primary px-7 py-3 font-bold text-white shadow-lg transition-opacity hover:opacity-90"
-            >
-              Register to Attend
-            </a>
-          )}
         </div>
         {closed ? <ClosedNotice ended={ended} header={header(true)} /> : <DynamicRegistrationForm event={event} header={header(false)} />}
       </div>

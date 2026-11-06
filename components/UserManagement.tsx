@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import type { AdminUser } from "@/types/guest";
-import { UserPlus, Shield, User, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Shield, User, Eye, EyeOff, Pencil } from "lucide-react";
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -17,6 +17,17 @@ export default function UserManagement() {
     role: "admin" as "admin" | "super_admin",
   });
   const [showPassword, setShowPassword] = useState(false);
+  // The admin being edited, with the form's working values. A blank password
+  // means "leave it unchanged".
+  const [editing, setEditing] = useState<{
+    id: string;
+    email: string;
+    displayName: string;
+    role: "admin" | "super_admin";
+    password: string;
+  } | null>(null);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -87,6 +98,61 @@ export default function UserManagement() {
     }
   };
 
+  const startEdit = (admin: AdminUser) => {
+    setShowForm(false);
+    setError("");
+    setSuccess("");
+    setShowEditPassword(false);
+    setEditing({
+      id: admin.id!,
+      email: admin.email,
+      displayName: admin.displayName,
+      role: admin.role,
+      password: "",
+    });
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editing) return;
+    setError("");
+    setSuccess("");
+    setSavingEdit(true);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/admin/users/${editing.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: editing.displayName,
+          email: editing.email,
+          role: editing.role,
+          password: editing.password,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to update admin user");
+
+      const isSelf = editing.id === user.uid;
+      setSuccess(
+        data.unchanged
+          ? "Nothing to save. No changes were made."
+          : data.changed?.includes("password") && !isSelf
+          ? `${editing.displayName} was updated. Their new password is active and they have been signed out everywhere, so share it with them securely.`
+          : `${editing.displayName} was updated.`
+      );
+      setEditing(null);
+      fetchAdmins();
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to update admin user");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -101,7 +167,10 @@ export default function UserManagement() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Admin User Management</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditing(null);
+            setShowForm(!showForm);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
         >
           <UserPlus className="h-5 w-5" />
@@ -223,6 +292,103 @@ export default function UserManagement() {
         </div>
       )}
 
+      {/* Edit User Form */}
+      {editing && (
+        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Edit {editing.displayName || editing.email}
+          </h3>
+          <form onSubmit={saveEdit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={editing.email}
+                  onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">This is the address they sign in with.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editing.displayName}
+                  onChange={(e) => setEditing({ ...editing, displayName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editing.password}
+                    onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                    className="w-full px-3 py-2 pr-11 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Leave blank to keep the current password"
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword((visible) => !visible)}
+                    aria-label={showEditPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showEditPassword}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {editing.id === user?.uid
+                    ? "Minimum 6 characters."
+                    : "Minimum 6 characters. Saving a new password signs them out everywhere."}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={editing.role}
+                  disabled={editing.id === user?.uid}
+                  onChange={(e) => setEditing({ ...editing, role: e.target.value as "admin" | "super_admin" })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+                {editing.id === user?.uid && (
+                  <p className="mt-1 text-xs text-gray-500">You cannot change your own role.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {savingEdit ? "Saving…" : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Admin Users Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -242,6 +408,9 @@ export default function UserManagement() {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Last Login
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
@@ -283,6 +452,16 @@ export default function UserManagement() {
                   {admin.lastLoginAt
                     ? new Date(admin.lastLoginAt).toLocaleString()
                     : "Never"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(admin)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
                 </td>
               </tr>
             ))}

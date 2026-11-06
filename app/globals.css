@@ -176,10 +176,3 @@ body {
   outline: 2px solid #27D2A9;
   outline-offset: 2px;
 }
-
-/* The "Register to Attend" button on an event page glides down to the form. */
-@media (prefers-reduced-motion: no-preference) {
-  html:has(#register) {
-    scroll-behavior: smooth;
-  }
-}
