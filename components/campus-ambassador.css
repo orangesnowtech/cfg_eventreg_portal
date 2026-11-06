@@ -3,7 +3,7 @@
  *
  * Every rule is scoped under .ca because this page deliberately does not use the
  * portal's mint/white event styling — an application is a more formal document
- * than an event signup — and the app-wide Montserrat body rule would otherwise
+ * than an event signup — and the app-wide Museo Sans body rule would otherwise
  * override it. Typefaces come in as CSS variables from next/font in the page.
  */
 

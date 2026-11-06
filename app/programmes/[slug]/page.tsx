@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 /*
  * Programme pages set their own type rather than inheriting the portal's
- * Montserrat. The variables are consumed by components/campus-ambassador.css.
+ * Museo Sans. The variables are consumed by components/campus-ambassador.css.
  */
 // Public Sans and Newsreader are variable fonts, so no weight is requested: the
 // full axis is served and the stylesheet's 300–600 weights all resolve. IBM Plex

@@ -25,6 +25,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark:bg-gray-900">
+      <head>
+        {/* Museo Sans, from the client's Adobe Fonts web project. */}
+        <link rel="preconnect" href="https://use.typekit.net" crossOrigin="" />
+        <link rel="stylesheet" href="https://use.typekit.net/jpv2guc.css" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
       >
