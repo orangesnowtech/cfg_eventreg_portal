@@ -77,12 +77,16 @@ function Banner({ event }: { event: EventRecord }) {
   const mobile = event.mobileBannerUrl;
 
   if (desktop && mobile) {
-    const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: desktop });
+    // On App Hosting images are served unoptimised, so getImageProps returns no
+    // srcSet. The <source> then has to point at the plain URL, or browsers skip
+    // it and show the mobile image at every width.
+    const { props: desktopProps } = getImageProps({ ...common, src: desktop });
+    const desktopSrcSet = desktopProps.srcSet || desktopProps.src;
     const { props: mobileProps } = getImageProps({ ...common, src: mobile });
     return (
       <div className={`${frame} aspect-4/5 md:aspect-3/1`}>
         <picture>
-          <source media={DESKTOP_QUERY} srcSet={desktopSrcSet} sizes={common.sizes} />
+          <source media={DESKTOP_QUERY} srcSet={desktopSrcSet} sizes={desktopProps.srcSet ? common.sizes : undefined} />
           <img {...mobileProps} alt={alt} fetchPriority="high" loading="eager" />
         </picture>
       </div>
